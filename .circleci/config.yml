@@ -15,11 +15,7 @@ jobs:
             echo "=== Login ==="
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
             
-            echo "=== Writing Containerfile ==="
-            curl -sL -o Containerfile "https://raw.githubusercontent.com/moneywaters/comfyui-ltx-docker/main/Containerfile"
-            curl -sL -o nodes.sh "https://raw.githubusercontent.com/moneywaters/comfyui-ltx-docker/main/nodes.sh"
-            
-            echo "=== Build $(date) ==="
+            echo "=== Building $(date) ==="
             docker build --progress plain -t "$IMAGE" -f Containerfile .
             
             echo "=== Push $(date) ==="
