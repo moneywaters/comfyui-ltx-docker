@@ -12,15 +12,12 @@ jobs:
           command: |
             set -euo pipefail
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
+            echo "Docker version: $(docker --version)"
+            echo "Disk: $(df -h / | tail -1)"
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
-            echo "=== Build $(date) ==="
-            docker build -t "$IMAGE" -f Containerfile . 2>&1 | cat
-            BUILD_OK=${PIPESTATUS[0]}
-            echo "Exit code: $BUILD_OK"
-            if [ $BUILD_OK -ne 0 ]; then exit $BUILD_OK; fi
-            echo "=== Push $(date) ==="
+            docker build -t "$IMAGE" -f Containerfile .
             docker push "$IMAGE"
-            echo "=== COMPLETE: $IMAGE ==="
+            echo "DONE"
 
 workflows:
   version: 2
