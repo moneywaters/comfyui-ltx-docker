@@ -4,8 +4,6 @@ jobs:
     machine:
       image: ubuntu-2204:current
       resource_class: medium
-    environment:
-      DOCKER_BUILDKIT: "0"
     steps:
       - checkout
       - run:
@@ -15,7 +13,12 @@ jobs:
             set -euo pipefail
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
-            docker build -t "$IMAGE" -f Containerfile .
+            echo "=== Build $(date) ==="
+            docker build -t "$IMAGE" -f Containerfile . 2>&1 | cat
+            BUILD_OK=${PIPESTATUS[0]}
+            echo "Exit code: $BUILD_OK"
+            if [ $BUILD_OK -ne 0 ]; then exit $BUILD_OK; fi
+            echo "=== Push $(date) ==="
             docker push "$IMAGE"
             echo "=== COMPLETE: $IMAGE ==="
 
