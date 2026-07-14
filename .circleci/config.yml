@@ -13,13 +13,14 @@ jobs:
             export DOCKER_BUILDKIT=0
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
-            docker build -t "$IMAGE" -f Containerfile . > /tmp/log 2>&1 &
+            nohup docker build -t "$IMAGE" -f Containerfile . > /tmp/log 2>&1 &
             PID=$!
-            while kill -0 $PID 2>/dev/null; do echo "alive $(date +%s)"; sleep 30; done
-            wait $PID; EC=$?; cat /tmp/log; exit $EC
-      - run:
-          name: Push
-          command: docker push "docker.io/${DOCKER_USER}/comfyui-ltx:latest"
+            while kill -0 $PID 2>/dev/null; do echo "OK $(date)"; sleep 60; done
+            wait $PID; EC=$?
+            cat /tmp/log
+            [ $EC -ne 0 ] && exit $EC
+            docker push "$IMAGE"
+            echo "DONE"
 
 workflows:
   version: 2
