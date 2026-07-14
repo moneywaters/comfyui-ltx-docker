@@ -7,34 +7,19 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Build and Push
+          name: Build Image and Push
           no_output_timeout: 5h
           command: |
-            set -euo pipefail
+            export DOCKER_BUILDKIT=0
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
-            
-            # Start build in background with output to file
-            docker build -t "$IMAGE" -f Containerfile . > /tmp/build.log 2>&1 &
-            BUILD_PID=$!
-            
-            # Echo progress every 30s to keep step alive
-            while kill -0 $BUILD_PID 2>/dev/null; do
-              echo "=== $(date) === $(wc -c < /tmp/build.log) bytes of build output"
-              sleep 30
-            done
-            
-            wait $BUILD_PID || BUILD_EXIT=$?
-            BUILD_EXIT=${BUILD_EXIT:-0}
-            
-            echo "=== BUILD EXIT: $BUILD_EXIT ==="
-            cat /tmp/build.log
-            
-            [ $BUILD_EXIT -ne 0 ] && exit $BUILD_EXIT
-            
-            echo "=== PUSH ==="
-            docker push "$IMAGE"
-            echo "=== DONE: $IMAGE ==="
+            docker build -t "$IMAGE" -f Containerfile . > /tmp/log 2>&1 &
+            PID=$!
+            while kill -0 $PID 2>/dev/null; do echo "alive $(date +%s)"; sleep 30; done
+            wait $PID; EC=$?; cat /tmp/log; exit $EC
+      - run:
+          name: Push
+          command: docker push "docker.io/${DOCKER_USER}/comfyui-ltx:latest"
 
 workflows:
   version: 2
