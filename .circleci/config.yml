@@ -12,18 +12,13 @@ jobs:
           command: |
             set -euo pipefail
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
+            export DOCKER_BUILDKIT=0
             
             echo "=== $(date) Login ==="
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
             
-            echo "=== $(date) Pull base ==="
-            docker pull pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
-            
             echo "=== $(date) Build ==="
-            docker build -t "$IMAGE" -f Containerfile . 2>&1
-            EXIT_CODE=$?
-            echo "BUILD EXIT CODE: $EXIT_CODE"
-            [ $EXIT_CODE -ne 0 ] && exit $EXIT_CODE
+            docker build -t "$IMAGE" -f Containerfile .
             
             echo "=== $(date) Push ==="
             docker push "$IMAGE"
