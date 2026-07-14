@@ -5,6 +5,7 @@ jobs:
       image: ubuntu-2204:current
       resource_class: large
     steps:
+      - checkout
       - run:
           name: Docker Build and Push
           no_output_timeout: 3h
@@ -12,13 +13,13 @@ jobs:
             set -euo pipefail
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
             
-            echo "=== Login ==="
+            echo "=== $(date) Login ==="
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
             
-            echo "=== Building $(date) ==="
+            echo "=== $(date) Build ==="
             docker build --progress plain -t "$IMAGE" -f Containerfile .
             
-            echo "=== Push $(date) ==="
+            echo "=== $(date) Push ==="
             docker push "$IMAGE"
             echo "=== DONE $(date) ==="
 
