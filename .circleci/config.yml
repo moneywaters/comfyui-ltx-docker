@@ -10,10 +10,14 @@ jobs:
           name: Build and Push
           no_output_timeout: 5h
           command: |
-            export DOCKER_BUILDKIT=0
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
-            docker build -t "$IMAGE" -f Containerfile . | cat
+            docker build --progress=plain -t "$IMAGE" -f Containerfile . 2>&1 | tee /tmp/build.log
+            BUILD_EXIT=${PIPESTATUS[0]}
+            if [ $BUILD_EXIT -ne 0 ]; then
+              echo "BUILD FAILED with exit $BUILD_EXIT"
+              exit $BUILD_EXIT
+            fi
             docker push "$IMAGE"
 
 workflows:
