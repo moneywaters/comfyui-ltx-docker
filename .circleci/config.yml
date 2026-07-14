@@ -4,17 +4,16 @@ jobs:
     machine:
       image: ubuntu-2204:current
       resource_class: medium
-    environment:
-      DOCKER_BUILDKIT: "0"
     steps:
       - checkout
       - run:
           name: Build and Push
           no_output_timeout: 5h
           command: |
+            export DOCKER_BUILDKIT=0
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
-            docker build -t "$IMAGE" -f Containerfile .
+            docker build -t "$IMAGE" -f Containerfile . | cat
             docker push "$IMAGE"
 
 workflows:
