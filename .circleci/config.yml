@@ -20,7 +20,7 @@ jobs:
             curl -sL -o nodes.sh "https://raw.githubusercontent.com/moneywaters/comfyui-ltx-docker/main/nodes.sh"
             
             echo "=== Build $(date) ==="
-            docker build -t "$IMAGE" -f Containerfile .
+            docker build --progress plain -t "$IMAGE" -f Containerfile .
             
             echo "=== Push $(date) ==="
             docker push "$IMAGE"
