@@ -1,8 +1,16 @@
-FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
+FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends wget ffmpeg libsndfile1 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 python3.11-venv python3.11-dev python3-pip \
+    git wget ffmpeg libsndfile1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3.11 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /opt/ComfyUI && \
     cd /opt/ComfyUI && pip install -r requirements.txt
