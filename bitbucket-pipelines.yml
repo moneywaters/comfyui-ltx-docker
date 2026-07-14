@@ -1,0 +1,18 @@
+image: atlassian/default-image:4
+
+pipelines:
+  default:
+    - step:
+        name: Build and Push Docker Image
+        services:
+          - docker
+        size: 2x
+        script:
+          - echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
+          - docker build -t moneywaters/comfyui-ltx:latest -f Containerfile .
+          - docker push moneywaters/comfyui-ltx:latest
+        artifacts:
+          - buildah-build.sh
+          - Containerfile
+          - nodes.sh
+          - download-models.sh
