@@ -13,7 +13,7 @@ jobs:
           command: |
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
-            docker build --progress plain -t "$IMAGE" -f Containerfile .  
+            docker build --progress plain -t "$IMAGE" -f Containerfile .
             docker push "$IMAGE"
 
 workflows:
