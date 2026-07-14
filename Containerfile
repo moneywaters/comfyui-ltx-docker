@@ -12,8 +12,6 @@ RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /opt/Comfy
 COPY nodes.sh /opt/nodes.sh
 RUN bash /opt/nodes.sh
 
-RUN cd /opt/ComfyUI/custom_nodes && git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager.git ComfyUI-Manager
-
 RUN cd /opt/ComfyUI && for req in custom_nodes/*/requirements.txt; do [ -f "$req" ] && pip install --no-cache-dir -r "$req" || true; done
 
 RUN pip install --no-cache-dir piexif rotary-embedding-torch numexpr imageio-ffmpeg pykalman \
