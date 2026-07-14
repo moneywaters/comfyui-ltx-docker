@@ -92,5 +92,4 @@ workflows:
   version: 2
   build:
     jobs:
-      - build-and-push:
-          context: comfyui-build
+      - build-and-push
