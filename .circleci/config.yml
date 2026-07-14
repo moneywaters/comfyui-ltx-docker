@@ -7,17 +7,33 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Build and Push
+          name: Build and Push (long-running)
           no_output_timeout: 5h
+          background: true
           command: |
             set -euo pipefail
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
-            echo "Docker version: $(docker --version)"
-            echo "Disk: $(df -h / | tail -1)"
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
-            docker build -t "$IMAGE" -f Containerfile .
-            docker push "$IMAGE"
-            echo "DONE"
+            docker build -t "$IMAGE" -f Containerfile . > /tmp/build-log.txt 2>&1
+            echo "BUILD_OK" > /tmp/build-done.txt
+            docker push "$IMAGE" >> /tmp/build-log.txt 2>&1
+            echo "PUSH_OK" > /tmp/push-done.txt
+      - run:
+          name: Wait for build to complete
+          no_output_timeout: 5h
+          command: |
+            while [ ! -f /tmp/build-done.txt ]; do
+              sleep 60
+              echo "$(date): $(wc -l < /tmp/build-log.txt 2>/dev/null) build lines"
+            done
+            echo "=== BUILD COMPLETE ==="
+            tail -20 /tmp/build-log.txt
+            if [ -f /tmp/push-done.txt ]; then
+              echo "=== PUSH COMPLETE ==="
+            else
+              echo "ERROR: Push did not complete"
+              exit 1
+            fi
 
 workflows:
   version: 2
