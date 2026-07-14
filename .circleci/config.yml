@@ -5,11 +5,26 @@ jobs:
       image: ubuntu-2204:current
       resource_class: large
     steps:
-      - checkout
       - run:
-          name: Build and Push
+          name: Docker Build and Push
           no_output_timeout: 3h
-          command: chmod +x buildah-build.sh && bash buildah-build.sh
+          command: |
+            set -euo pipefail
+            IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
+            
+            echo "=== Login ==="
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
+            
+            echo "=== Writing Containerfile ==="
+            curl -sL -o Containerfile "https://raw.githubusercontent.com/moneywaters/comfyui-ltx-docker/main/Containerfile"
+            curl -sL -o nodes.sh "https://raw.githubusercontent.com/moneywaters/comfyui-ltx-docker/main/nodes.sh"
+            
+            echo "=== Build $(date) ==="
+            docker build -t "$IMAGE" -f Containerfile .
+            
+            echo "=== Push $(date) ==="
+            docker push "$IMAGE"
+            echo "=== DONE $(date) ==="
 
 workflows:
   version: 2
