@@ -1,21 +1,20 @@
 FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends git wget ffmpeg libsndfile1 libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 gcc g++ build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends wget ffmpeg libsndfile1 && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /opt/ComfyUI && \
-    cd /opt/ComfyUI && pip install --progress-bar off -r requirements.txt
+    cd /opt/ComfyUI && pip install -r requirements.txt
 
 RUN git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager.git /opt/ComfyUI/custom_nodes/ComfyUI-Manager
 
 COPY nodes.sh /opt/nodes.sh
 RUN bash /opt/nodes.sh
 
-RUN cd /opt/ComfyUI && for req in custom_nodes/*/requirements.txt; do [ -f "$req" ] && pip install --progress-bar off -r "$req" || true; done
+RUN cd /opt/ComfyUI && for req in custom_nodes/*/requirements.txt; do [ -f "$req" ] && pip install -r "$req" || true; done
 
-RUN pip install --progress-bar off piexif rotary-embedding-torch numexpr imageio-ffmpeg pykalman \
+RUN pip install piexif rotary-embedding-torch numexpr imageio-ffmpeg pykalman \
     "kornia==0.7.3" spandrel spandrel_extra_arches pandas segment-anything webcolors
 
 RUN mkdir -p /opt/ComfyUI/models/{diffusion_models,latent_upscale_models,text_encoders,vae,loras}
