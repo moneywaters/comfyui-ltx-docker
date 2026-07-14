@@ -26,7 +26,9 @@ buildah run "$CONTAINER" -- pip install -r /opt/ComfyUI/requirements.txt
 
 echo "=== Custom nodes ==="
 buildah run "$CONTAINER" -- git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager.git /opt/ComfyUI/custom_nodes/ComfyUI-Manager
-for repo in \
+echo "Manager done"
+
+for repo_url in \
   "https://github.com/rgthree/rgthree-comfy.git rgthree-comfy" \
   "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git ComfyUI-Impact-Pack" \
   "https://github.com/ltdrdata/ComfyUI-Inspire-Pack.git ComfyUI-Inspire-Pack" \
@@ -47,9 +49,10 @@ for repo in \
   "https://github.com/chrisgoringe/cg-use-everywhere.git cg-use-everywhere" \
   "https://github.com/malkuthro/ComfyUI-Koolook.git ComfyUI-Koolook" \
   "https://github.com/artokun/comfyui-mcp-panel.git comfyui-mcp-panel"; do
-  url=$(echo "$repo" | awk '{print $1}')
-  dir=$(echo "$repo" | awk '{print $2}')
-  buildah run "$CONTAINER" -- git clone --depth 1 "$url" "/opt/ComfyUI/custom_nodes/$dir"
+  url=$(echo "$repo_url" | awk '{print $1}')
+  dir=$(echo "$repo_url" | awk '{print $2}')
+  echo "  Cloning $dir..."
+  buildah run "$CONTAINER" -- git clone --depth 1 "$url" "/opt/ComfyUI/custom_nodes/$dir" || { echo "FAILED: $dir"; exit 1; }
 done
 echo "Nodes done $(date)"
 
