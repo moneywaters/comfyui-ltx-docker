@@ -21,39 +21,16 @@ buildah run "$CONTAINER" -- apt-get install -y --no-install-recommends git wget 
 buildah run "$CONTAINER" -- apt-get clean
 
 echo "=== ComfyUI $(date) ==="
-buildah run "$CONTAINER" -- git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /opt/ComfyUI
-buildah run "$CONTAINER" -- pip install -r /opt/ComfyUI/requirements.txt
+buildah run "$CONTAINER" -- git clone --depth 1 --quiet https://github.com/comfyanonymous/ComfyUI.git /opt/ComfyUI
+buildah run "$CONTAINER" -- pip install --progress-bar off -r /opt/ComfyUI/requirements.txt
 
 echo "=== Custom nodes ==="
-buildah run "$CONTAINER" -- git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager.git /opt/ComfyUI/custom_nodes/ComfyUI-Manager
-echo "Manager done"
-
-for repo_url in \
-  "https://github.com/rgthree/rgthree-comfy.git rgthree-comfy" \
-  "https://github.com/ltdrdata/ComfyUI-Impact-Pack.git ComfyUI-Impact-Pack" \
-  "https://github.com/ltdrdata/ComfyUI-Inspire-Pack.git ComfyUI-Inspire-Pack" \
-  "https://github.com/chflame163/ComfyUI_LayerStyle.git ComfyUI_LayerStyle" \
-  "https://github.com/yolain/ComfyUI-Easy-Use.git ComfyUI-Easy-Use" \
-  "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git ComfyUI-VideoHelperSuite" \
-  "https://github.com/pythongosssss/ComfyUI-Custom-Scripts.git ComfyUI-Custom-Scripts" \
-  "https://github.com/Fannovel16/ComfyUI-Frame-Interpolation.git ComfyUI-Frame-Interpolation" \
-  "https://github.com/kijai/ComfyUI-MelBandRoFormer.git comfyui-melbandroformer" \
-  "https://github.com/Fannovel16/comfyui_controlnet_aux.git comfyui_controlnet_aux" \
-  "https://github.com/kijai/ComfyUI-KJNodes.git ComfyUI-KJNodes" \
-  "https://github.com/FizzleDorf/ComfyUI_FizzNodes.git ComfyUI-FizzNodes" \
-  "https://github.com/WASasquatch/was-node-suite-comfyui.git WAS-Node-Suite-ComfyUI" \
-  "https://github.com/Lightricks/ComfyUI-LTXVideo.git ComfyUI-LTXVideo" \
-  "https://github.com/kijai/ComfyUI-LivePortraitKJ.git ComfyUI-LivePortraitKJ" \
-  "https://github.com/Azornes/Comfyui-Resolution-Master.git Comfyui-Resolution-Master" \
-  "https://github.com/BetaDoggo/comfyui-rtx-simple.git comfyui-rtx-simple" \
-  "https://github.com/chrisgoringe/cg-use-everywhere.git cg-use-everywhere" \
-  "https://github.com/malkuthro/ComfyUI-Koolook.git ComfyUI-Koolook" \
-  "https://github.com/artokun/comfyui-mcp-panel.git comfyui-mcp-panel"; do
-  url=$(echo "$repo_url" | awk '{print $1}')
-  dir=$(echo "$repo_url" | awk '{print $2}')
-  echo "  Cloning $dir..."
-  buildah run "$CONTAINER" -- git clone --depth 1 "$url" "/opt/ComfyUI/custom_nodes/$dir" || { echo "FAILED: $dir"; exit 1; }
-done
+# Write a small batch script to install ALL nodes at once inside the container
+buildah run "$CONTAINER" -- bash /opt/nodes_install.sh 2>/dev/null || {
+  # Copy the install script into the container and run it
+  buildah copy "$CONTAINER" "$(dirname "$0")/nodes.sh" /opt/nodes_install.sh
+  buildah run "$CONTAINER" -- bash /opt/nodes_install.sh
+}
 echo "Nodes done $(date)"
 
 echo "=== Pip deps ==="
