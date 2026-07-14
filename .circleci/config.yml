@@ -3,26 +3,37 @@ jobs:
   build-and-push:
     machine:
       image: ubuntu-2204:current
-      resource_class: xlarge
+      resource_class: large
     steps:
       - checkout
       - run:
           name: Docker Build and Push
-          no_output_timeout: 3h
+          no_output_timeout: 5h
           command: |
             set -euo pipefail
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
-            export DOCKER_BUILDKIT=1
-            
-            echo "=== $(date) Login ==="
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
             
-            echo "=== $(date) Build ==="
-            docker build -t "$IMAGE" -f Containerfile . 
+            # Pre-pull base image to avoid BuildKit output timeout
+            docker pull nvidia/cuda:12.4.0-devel-ubuntu22.04
             
-            echo "=== $(date) Push ==="
+            # Build with output to file to survive process watchdog
+            docker build -t "$IMAGE" -f Containerfile . > /tmp/build.log 2>&1 &
+            BUILD_PID=$!
+            
+            # Monitor build progress every 60 seconds
+            while kill -0 $BUILD_PID 2>/dev/null; do
+              sleep 60
+              echo "=== $(date) Build running ($(wc -l < /tmp/build.log) lines) ==="
+              tail -3 /tmp/build.log
+            done
+            
+            wait $BUILD_PID && BUILD_OK=0 || BUILD_OK=$?
+            tail -50 /tmp/build.log
+            [ $BUILD_OK -ne 0 ] && exit $BUILD_OK
+            
             docker push "$IMAGE"
-            echo "=== DONE $(date) ==="
+            echo "DONE"
 
 workflows:
   version: 2
