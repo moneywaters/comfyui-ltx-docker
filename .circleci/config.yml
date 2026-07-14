@@ -17,7 +17,8 @@ jobs:
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
             
             echo "=== $(date) Build ==="
-            docker build --progress plain -t "$IMAGE" -f Containerfile .
+            docker build --progress plain --debug -t "$IMAGE" -f Containerfile . 2>&1 | tee build.log
+            echo "exit: $?"
             
             echo "=== $(date) Push ==="
             docker push "$IMAGE"
