@@ -3,7 +3,7 @@ jobs:
   build-and-push:
     machine:
       image: ubuntu-2204:current
-      resource_class: large
+      resource_class: xlarge
     steps:
       - checkout
       - run:
@@ -12,13 +12,13 @@ jobs:
           command: |
             set -euo pipefail
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
-            export DOCKER_BUILDKIT=0
+            export DOCKER_BUILDKIT=1
             
             echo "=== $(date) Login ==="
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
             
             echo "=== $(date) Build ==="
-            docker build -t "$IMAGE" -f Containerfile .
+            docker build -t "$IMAGE" -f Containerfile . 
             
             echo "=== $(date) Push ==="
             docker push "$IMAGE"
