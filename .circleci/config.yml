@@ -7,33 +7,34 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Build and Push (long-running)
+          name: Build and Push
           no_output_timeout: 5h
-          background: true
           command: |
             set -euo pipefail
             IMAGE="docker.io/${DOCKER_USER}/comfyui-ltx:latest"
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin docker.io
-            docker build -t "$IMAGE" -f Containerfile . > /tmp/build-log.txt 2>&1
-            echo "BUILD_OK" > /tmp/build-done.txt
-            docker push "$IMAGE" >> /tmp/build-log.txt 2>&1
-            echo "PUSH_OK" > /tmp/push-done.txt
-      - run:
-          name: Wait for build to complete
-          no_output_timeout: 5h
-          command: |
-            while [ ! -f /tmp/build-done.txt ]; do
-              sleep 60
-              echo "$(date): $(wc -l < /tmp/build-log.txt 2>/dev/null) build lines"
+            
+            # Start build in background with output to file
+            docker build -t "$IMAGE" -f Containerfile . > /tmp/build.log 2>&1 &
+            BUILD_PID=$!
+            
+            # Echo progress every 30s to keep step alive
+            while kill -0 $BUILD_PID 2>/dev/null; do
+              echo "=== $(date) === $(wc -c < /tmp/build.log) bytes of build output"
+              sleep 30
             done
-            echo "=== BUILD COMPLETE ==="
-            tail -20 /tmp/build-log.txt
-            if [ -f /tmp/push-done.txt ]; then
-              echo "=== PUSH COMPLETE ==="
-            else
-              echo "ERROR: Push did not complete"
-              exit 1
-            fi
+            
+            wait $BUILD_PID || BUILD_EXIT=$?
+            BUILD_EXIT=${BUILD_EXIT:-0}
+            
+            echo "=== BUILD EXIT: $BUILD_EXIT ==="
+            cat /tmp/build.log
+            
+            [ $BUILD_EXIT -ne 0 ] && exit $BUILD_EXIT
+            
+            echo "=== PUSH ==="
+            docker push "$IMAGE"
+            echo "=== DONE: $IMAGE ==="
 
 workflows:
   version: 2
