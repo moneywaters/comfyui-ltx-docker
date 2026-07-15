@@ -2,7 +2,12 @@ FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
 
 ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends git openssh-server && \
+    mkdir /var/run/sshd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
+    sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN git config --global http.postBuffer 524288000 && git config --global http.lowSpeedLimit 0 && git config --global http.lowSpeedTime 999999
 
@@ -17,12 +22,16 @@ RUN cd /opt/ComfyUI && for req in custom_nodes/*/requirements.txt; do [ -f "$req
 RUN pip install --no-cache-dir piexif rotary-embedding-torch numexpr imageio-ffmpeg pykalman \
     "kornia==0.7.3" spandrel spandrel_extra_arches pandas segment-anything webcolors
 
+RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh && \
+    echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAt/TE7gxwxhsaAvnYg/uZcZpa1ovhC0YOnCdjkJurZO clore.ai' > /root/.ssh/authorized_keys && \
+    chmod 600 /root/.ssh/authorized_keys
+
 RUN mkdir -p /opt/ComfyUI/models/{diffusion_models,latent_upscale_models,text_encoders,vae,loras}
 
 COPY start.sh /opt/start.sh
 COPY download-models.sh /opt/download-models.sh
 RUN chmod +x /opt/start.sh /opt/download-models.sh
 
-EXPOSE 8188
+EXPOSE 8188 22
 WORKDIR /opt/ComfyUI
 ENTRYPOINT ["/opt/start.sh"]
