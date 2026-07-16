@@ -33,6 +33,8 @@ COPY start.sh /opt/start.sh
 COPY download-models.sh /opt/download-models.sh
 RUN chmod +x /opt/start.sh /opt/download-models.sh
 
+COPY workflow/LTX-fixed.json /opt/ComfyUI/user/default/workflows/LTX-fixed.json
+
 EXPOSE 8188 22
 WORKDIR /opt/ComfyUI
 ENTRYPOINT ["/opt/start.sh"]
