@@ -2,7 +2,7 @@ FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
 
 ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends git openssh-server && \
+RUN apt-get update && apt-get install -y --no-install-recommends git openssh-server libgl1-mesa-glx libx11-6 && \
     mkdir /var/run/sshd && \
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
@@ -21,6 +21,7 @@ RUN cd /opt/ComfyUI && for req in custom_nodes/*/requirements.txt; do [ -f "$req
 
 RUN pip install --no-cache-dir piexif rotary-embedding-torch numexpr imageio-ffmpeg pykalman \
     "kornia==0.7.3" spandrel spandrel_extra_arches pandas segment-anything webcolors
+RUN pip install --no-cache-dir sqlalchemy opencv-python-headless scikit-image matplotlib
 
 RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh && \
     echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAt/TE7gxwxhsaAvnYg/uZcZpa1ovhC0YOnCdjkJurZO clore.ai' > /root/.ssh/authorized_keys && \

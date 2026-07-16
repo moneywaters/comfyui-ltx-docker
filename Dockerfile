@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1
 ENV COMFYUI_PATH=/opt/ComfyUI
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git wget ffmpeg libsndfile1 libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 \
+    git wget ffmpeg libsndfile1 libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 libgl1-mesa-glx libx11-6 \
     gcc g++ build-essential \
     && rm -rf /var/lib/apt/lists/*
 
@@ -44,6 +44,7 @@ RUN cd /opt/ComfyUI && \
 RUN pip install piexif rotary-embedding-torch numexpr imageio-ffmpeg pykalman \
     "kornia==0.7.3" spandrel spandrel_extra_arches \
     pandas segment-anything webcolors
+RUN pip install --no-cache-dir sqlalchemy opencv-python-headless scikit-image matplotlib
 
 RUN mkdir -p /opt/ComfyUI/models && cp -r /mnt/models/* /opt/ComfyUI/models/
 
