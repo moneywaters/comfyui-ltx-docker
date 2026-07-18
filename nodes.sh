@@ -24,8 +24,14 @@ for pair in \
   "https://github.com/BetaDoggo/comfyui-rtx-simple.git comfyui-rtx-simple" \
   "https://github.com/chrisgoringe/cg-use-everywhere.git cg-use-everywhere" \
   "https://github.com/malkuthro/ComfyUI-Koolook.git ComfyUI-Koolook" \
-  "https://github.com/artokun/comfyui-mcp-panel.git comfyui-mcp-panel"; do
+  "https://github.com/artokun/comfyui-mcp-panel.git comfyui-mcp-panel" \
+  "https://github.com/dseditor/ComfyUI-ListHelper.git ComfyUI-ListHelper" \
+  "https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI.git WhatDreamsCost-ComfyUI"; do
   url=$(echo "$pair" | awk '{print $1}')
   dir=$(echo "$pair" | awk '{print $2}')
+  echo "Cloning $dir ..."
   git clone --depth 1 "$url" "$dir"
 done
+
+echo "=== Custom nodes cloned ==="
+ls -1
