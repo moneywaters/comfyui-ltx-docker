@@ -7,7 +7,8 @@ ENV SKIP_MODEL_DOWNLOAD=0
 # fp8 embedding fix (sitecustomize + explicit import path)
 ENV PYTHONPATH=/opt/comfyui-fixes
 ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-ENV PATH=/opt/ffmpeg/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Keep /opt/conda/bin — overriding PATH without it breaks pip/python from the base image.
+ENV PATH=/opt/ffmpeg/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git wget curl xz-utils openssh-server libsndfile1 \
@@ -40,18 +41,18 @@ RUN git config --global http.postBuffer 524288000 \
 
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /opt/ComfyUI \
     && cd /opt/ComfyUI \
-    && pip install --no-cache-dir -r requirements.txt
+    && /opt/conda/bin/pip install --no-cache-dir -r requirements.txt
 
 COPY nodes.sh /opt/nodes.sh
 RUN bash /opt/nodes.sh
 
 RUN cd /opt/ComfyUI && for req in custom_nodes/*/requirements.txt; do \
-        [ -f "$req" ] && pip install --no-cache-dir -r "$req" || true; \
+        [ -f "$req" ] && /opt/conda/bin/pip install --no-cache-dir -r "$req" || true; \
     done
 
-RUN pip install --no-cache-dir piexif rotary-embedding-torch numexpr imageio-ffmpeg pykalman \
+RUN /opt/conda/bin/pip install --no-cache-dir piexif rotary-embedding-torch numexpr imageio-ffmpeg pykalman \
         "kornia==0.7.3" spandrel spandrel_extra_arches pandas segment-anything webcolors \
-    && pip install --no-cache-dir sqlalchemy opencv-python-headless scikit-image matplotlib
+    && /opt/conda/bin/pip install --no-cache-dir sqlalchemy opencv-python-headless scikit-image matplotlib
 
 RUN mkdir -p /opt/comfyui-fixes /root/.ssh \
         /opt/ComfyUI/models/diffusion_models \
