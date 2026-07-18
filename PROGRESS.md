@@ -23,29 +23,33 @@
 | `smoke-test.sh` | Fast verify: custom_nodes dirs + HTTP 200 + system_stats + required object_info types |
 | `vast-smoke-launch.sh` | One-shot Vast launch with `SKIP_MODEL_DOWNLOAD=1` (no 48GB wait) |
 
-### How to test WITHOUT 48GB downloads
+### Pod selection: **download speed first** (models ~48GB)
 
+`select-vast-offer.py` ranks offers primarily by `inet_down` (Mbps).
+
+| Link speed | ~50GB model pull (rough) |
+|------------|---------------------------|
+| 200 Mbps   | ~30+ min                  |
+| 1000 Mbps  | ~7 min                    |
+| 3000+ Mbps | ~2 min                    |
+| 8000 Mbps  | under 1 min               |
+
+**Full launch (models download)** — requires fast DL:
 ```bash
-# After image rebuild is on Docker Hub:
+bash vast-full-launch.sh
+# or raise the floor:
+MIN_DL=2000 MAX_DPH=0.30 bash vast-full-launch.sh
+```
+Defaults: `inet_down>=1000`, disk 100GB, `BACKGROUND_MODELS=1` (UI first).
+
+**Smoke (no models)** — still wants decent DL for the ~8GB image pull:
+```bash
 bash vast-smoke-launch.sh
-
-# Once instance is running:
-vastai execute <ID> 'bash /opt/smoke-test.sh'
-# Expect: AudioToFrameCount + LTXDirectorGuide present, HTTP 200
+# Once running (SSH):
+bash /opt/smoke-test.sh
 ```
 
-Or manually:
-
-```bash
-vastai create instance <OFFER_ID> \
-  --image moneywaters/comfyui-ltx:latest \
-  --ssh --direct --disk 40 \
-  --env '-p 22:22 -p 8188:8188 -e SKIP_MODEL_DOWNLOAD=1' \
-  --onstart-cmd 'mkdir -p /var/run/sshd && /usr/sbin/sshd || true; export SKIP_MODEL_DOWNLOAD=1; exec /opt/start.sh'
-```
-
-### Full production launch (with models, background download → UI up first)
-
+Manual full create (if you already picked a fast offer id):
 ```bash
 vastai create instance <OFFER_ID> \
   --image moneywaters/comfyui-ltx:latest \
@@ -54,7 +58,7 @@ vastai create instance <OFFER_ID> \
   --onstart-cmd 'mkdir -p /var/run/sshd && /usr/sbin/sshd || true; exec /opt/start.sh'
 ```
 
-ComfyUI should answer on :8188 within ~1–3 min of container start while models continue in `/var/log/model-download.log`. Status file: `/tmp/models-status` (`downloading`|`ready`|`failed`|`skipped`).
+ComfyUI answers on :8188 within ~1–3 min while models continue in `/var/log/model-download.log`. Status: `/tmp/models-status` (`downloading`|`ready`|`failed`|`skipped`).
 
 ### Verification (2026-07-18) — PASSED without 48GB models
 
