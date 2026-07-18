@@ -56,6 +56,21 @@ vastai create instance <OFFER_ID> \
 
 ComfyUI should answer on :8188 within ~1–3 min of container start while models continue in `/var/log/model-download.log`. Status file: `/tmp/models-status` (`downloading`|`ready`|`failed`|`skipped`).
 
+### Verification (2026-07-18) — PASSED without 48GB models
+
+- GHA run `29634454609` for commit `d5f5b37` → success (~8 min)
+- Vast instance `45223170` (Poland RTX 3060, Ryzen 5600X, `$0.061/hr`) with `SKIP_MODEL_DOWNLOAD=1`
+- `bash /opt/smoke-test.sh` → **ALL CHECKS PASSED**
+  - 2289 registered node types, 101 LTX backend types
+  - `AudioToFrameCount`, `LTXDirectorGuide`, `LTXDirector__koolook`, `VHS_VideoCombine` present
+  - `models-status=skipped`
+  - ComfyUI 0.28.0, PyTorch 2.5.1+cu124, frontend package 1.45.21 (matches required)
+  - HTTP `/` 200, WebSocket `/ws` connected
+  - Workflow library includes `LTX-fixed.json`
+- Instance destroyed after smoke test to save credit
+
+UI URL during test: `http://91.150.160.38:10962/` (direct mapped port)
+
 ### CPU / host warnings (still apply)
 
 - PyTorch 2.5.1 needs **AVX2** — avoid Pentium Gold / Celeron hosts
