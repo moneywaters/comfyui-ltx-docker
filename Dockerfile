@@ -7,9 +7,12 @@ ENV PYTHONUNBUFFERED=1
 ENV COMFYUI_PATH=/opt/ComfyUI
 ENV BACKGROUND_MODELS=1
 ENV SKIP_MODEL_DOWNLOAD=0
+ENV PYTHONPATH=/opt/comfyui-fixes
+ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+ENV PATH=/opt/ffmpeg/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git wget curl openssh-server ffmpeg libsndfile1 \
+    git wget curl xz-utils openssh-server ffmpeg libsndfile1 \
     libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 libgl1-mesa-glx libx11-6 \
     gcc g++ build-essential \
     && mkdir -p /var/run/sshd \
@@ -17,6 +20,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config \
     && sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config \
     && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /opt/ffmpeg/bin \
+    && cd /tmp \
+    && wget -q -O ffmpeg.tar.xz \
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz" \
+    && tar -xJf ffmpeg.tar.xz \
+    && FFDIR=$(find /tmp -maxdepth 1 -type d -name 'ffmpeg-*-linux64-gpl' | head -1) \
+    && cp -a "$FFDIR"/bin/ffmpeg "$FFDIR"/bin/ffprobe /opt/ffmpeg/bin/ \
+    && ln -sf /opt/ffmpeg/bin/ffmpeg /usr/local/bin/ffmpeg \
+    && ln -sf /opt/ffmpeg/bin/ffprobe /usr/local/bin/ffprobe \
+    && rm -rf /tmp/ffmpeg*
 
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /opt/ComfyUI && \
     cd /opt/ComfyUI && pip install --no-cache-dir -r requirements.txt
@@ -48,6 +62,8 @@ RUN mkdir -p \
     /workspace/output \
     /workspace/input
 
+RUN mkdir -p /opt/comfyui-fixes
+COPY fp8_embed_fix.py sitecustomize.py /opt/comfyui-fixes/
 COPY start.sh /opt/start.sh
 COPY download-models.sh /opt/download-models.sh
 COPY smoke-test.sh /opt/smoke-test.sh

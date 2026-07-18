@@ -4175,7 +4175,7 @@
         }
       },
       "widgets_values": [
-        25
+        24.0
       ]
     },
     {
@@ -6491,8 +6491,8 @@
       "widgets_values": [
         "Manual",
         "latent_128x16",
-        1024,
-        1024,
+        768,
+        768,
         false,
         "backend",
         0,
@@ -14008,10 +14008,10 @@
         }
       },
       "widgets_values": {
-        "frame_rate": 8,
+        "frame_rate": 24,
         "loop_count": 0,
         "filename_prefix": "LTX2_3",
-        "format": "video/h264-mp4",
+        "format": "video/nvenc_h264-mp4",
         "pix_fmt": "yuv420p",
         "bitrate": 10,
         "megabit": true,
@@ -16055,14 +16055,14 @@
       },
       "widgets_values": [
         0,
-        5,
-        5,
+        15.0,
+        15.0,
         0,
-        120,
-        120,
-        "{\"mainTrackEnabled\": true, \"audioTrackEnabled\": false, \"motionTrackEnabled\": false, \"propHeight\": 90, \"globalPropHeight\": 60, \"showFilenames\": true, \"overrideAudio\": false, \"inpaint_audio\": false, \"global_prompt\": \"\", \"retake_global_prompt\": \"\", \"retakeMode\": false, \"retakeStart\": 24, \"retakeLength\": 48, \"retakePrompt\": \"\", \"retakeStrength\": 1, \"retakeVideo\": null, \"normalStartFrame\": 0, \"normalDurationFrames\": 120, \"segments\": [{\"id\": \"1782904631713pi2d7\", \"start\": 0, \"length\": 120, \"prompt\": \"A dynamic 5-second rap music video featuring a confident performer with energetic hip-hop dance moves, rhythmic hand gestures, and stylish urban streetwear. The camera captures close-up shots with dramatic lighting, neon city lights in the background, and a gritty cinematic atmosphere. The performer lip-syncs with passionate intensity, showcasing authentic rap performance energy.\", \"type\": \"image\", \"imageFile\": \"asan.png\", \"imageB64\": \"/api/view?filename=asan.png&type=input&subfolder=\", \"isEndFrame\": false}], \"motionSegments\": [], \"audioSegments\": []}",
-        "A dynamic 5-second rap music video featuring a confident performer with energetic hip-hop dance moves, rhythmic hand gestures, and stylish urban streetwear. The camera captures close-up shots with dramatic lighting, neon city lights in the background, and a gritty cinematic atmosphere. The performer lip-syncs with passionate intensity, showcasing authentic rap performance energy.",
-        "120",
+        361,
+        361,
+        "{\"mainTrackEnabled\": true, \"audioTrackEnabled\": false, \"motionTrackEnabled\": false, \"propHeight\": 90, \"globalPropHeight\": 60, \"showFilenames\": true, \"overrideAudio\": false, \"inpaint_audio\": false, \"global_prompt\": \"\", \"retake_global_prompt\": \"\", \"retakeMode\": false, \"retakeStart\": 24, \"retakeLength\": 48, \"retakePrompt\": \"\", \"retakeStrength\": 1, \"retakeVideo\": null, \"normalStartFrame\": 0, \"normalDurationFrames\": 361, \"segments\": [{\"id\": \"1782904631713pi2d7\", \"start\": 0, \"length\": 361, \"prompt\": \"A dynamic 15-second rap music video featuring a confident performer with energetic hip-hop dance moves, rhythmic hand gestures, and stylish urban streetwear. The camera captures close-up shots with dramatic lighting, neon city lights in the background, and a gritty cinematic atmosphere. The performer lip-syncs with passionate intensity, showcasing authentic rap performance energy.\", \"type\": \"image\", \"imageFile\": \"asan.png\", \"imageB64\": \"/api/view?filename=asan.png&type=input&subfolder=\", \"isEndFrame\": false}], \"motionSegments\": [], \"audioSegments\": []}",
+        "A dynamic 15-second rap music video featuring a confident performer with energetic hip-hop dance moves, rhythmic hand gestures, and stylish urban streetwear. The camera captures close-up shots with dramatic lighting, neon city lights in the background, and a gritty cinematic atmosphere. The performer lip-syncs with passionate intensity, showcasing authentic rap performance energy.",
+        "361",
         0.001,
         "1.00",
         false,
@@ -22032,7 +22032,7 @@
             },
             "widgets_values": [
               "linear_quadratic",
-              8,
+              6,
               1
             ]
           },
@@ -23194,9 +23194,9 @@
               }
             },
             "widgets_values": [
-              56,
-              24,
-              1,
+              40,
+              16,
+              0.85,
               0.5,
               1,
               1,

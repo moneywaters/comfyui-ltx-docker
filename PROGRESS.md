@@ -60,7 +60,20 @@ vastai create instance <OFFER_ID> \
 
 ComfyUI answers on :8188 within ~1–3 min while models continue in `/var/log/model-download.log`. Status: `/tmp/models-status` (`downloading`|`ready`|`failed`|`skipped`).
 
+### Image hardening (2026-07-18 later) — NVENC / 15s / fp8 / lowvram
+
+| Change | Detail |
+|--------|--------|
+| **NVENC ffmpeg** | BtbN `linux64-gpl` build at `/opt/ffmpeg` with `av1_nvenc` + `h264_nvenc` |
+| **VHS format** | `start.sh` picks `video/nvenc_av1-mp4` if GPU compute ≥ 8.9 (Ada/40xx+), else `video/nvenc_h264-mp4` (30xx). Override: `COMFYUI_VHS_FORMAT` |
+| **15s workflow** | Director 15s / 361f @ 24fps; res 768×768; looping temporal tiles 40/16; primary sampler 6 steps |
+| **fp8 path** | `/opt/comfyui-fixes/fp8_embed_fix.py` casts Float8 embedding weights before `index_select` (keeps Gemma on GPU) |
+| **lowvram** | `main.py --lowvram --disable-smart-memory` + `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`. Disable lowvram: `COMFYUI_NO_LOWVRAM=1` |
+
+Re-optimize workflow anytime: `python3 optimize_workflow_15s.py --seconds 15 --width 768`
+
 ### Full model + generation (2026-07-18) — LTX-fixed.json only
+
 
 - Instance `45223843` RTX 3090 (Michigan), high `inet_down`, disk 100GB
 - Models downloaded to `/tmp/models-status=ready` (13 safetensors, ~45GB+)

@@ -132,6 +132,30 @@ else
   info "no /tmp/models-status (entrypoint may have been overridden)"
 fi
 
+echo "-- ffmpeg / NVENC --"
+if command -v ffmpeg >/dev/null 2>&1; then
+  info "ffmpeg=$(command -v ffmpeg)"
+  if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q av1_nvenc; then
+    ok "av1_nvenc encoder present in ffmpeg build"
+  else
+    bad "av1_nvenc missing from ffmpeg (image build should ship BtbN NVENC ffmpeg)"
+  fi
+  if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q h264_nvenc; then
+    ok "h264_nvenc encoder present"
+  else
+    info "h264_nvenc not listed (may still work once driver libs mount)"
+  fi
+else
+  bad "ffmpeg not on PATH"
+fi
+
+echo "-- lowvram / fp8 fix --"
+if [ -f /opt/comfyui-fixes/fp8_embed_fix.py ]; then
+  ok "fp8_embed_fix.py present"
+else
+  bad "fp8_embed_fix.py missing"
+fi
+
 echo
 if [ "$FAIL" -eq 0 ]; then
   echo "=== RESULT: ALL CHECKS PASSED ==="
