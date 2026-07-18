@@ -88,7 +88,6 @@ if [ -f "$WF_JSON" ] && command -v nvidia-smi >/dev/null 2>&1; then
         VHS_FMT="video/nvenc_h264-mp4"
     fi
     # Allow override
-    VHS_FMT="${COMFYUI_VHS_FORMAT:-$VHS_FMT}"
     /opt/conda/bin/python3 - "$WF_JSON" "$VHS_FMT" <<'PY' || true
 import json, sys
 path, fmt = sys.argv[1], sys.argv[2]
@@ -111,6 +110,15 @@ with open(path, "w") as f:
     f.write("\n")
 print(f"[start] VHS format for node 301 -> {fmt} (changes={nchg})", flush=True)
 PY
+    # Probe whether NVENC actually encodes (driver API may be too old for this ffmpeg)
+    if echo "$VHS_FMT" | grep -q nvenc; then
+        ENC=$(echo "$VHS_FMT" | sed -n "s|video/nvenc_\(.*\)-mp4|\1_nvenc|p")
+        if ! ffmpeg -hide_banner -loglevel error -f lavfi -i color=c=black:s=64x64:d=0.04               -c:v "${ENC:-h264_nvenc}" -f null - 2>/dev/null; then
+            log "NVENC encode probe failed for ${ENC} — falling back to software h264"
+            VHS_FMT="video/h264-mp4"
+        fi
+    fi
+    VHS_FMT="${COMFYUI_VHS_FORMAT:-$VHS_FMT}"
     log "GPU compute_cap=${CAP}; VHS format=${VHS_FMT}"
 fi
 
