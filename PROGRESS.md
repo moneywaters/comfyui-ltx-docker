@@ -60,6 +60,21 @@ vastai create instance <OFFER_ID> \
 
 ComfyUI answers on :8188 within ~1–3 min while models continue in `/var/log/model-download.log`. Status: `/tmp/models-status` (`downloading`|`ready`|`failed`|`skipped`).
 
+### Full model + generation (2026-07-18) — LTX-fixed.json only
+
+- Instance `45223843` RTX 3090 (Michigan), high `inet_down`, disk 100GB
+- Models downloaded to `/tmp/models-status=ready` (13 safetensors, ~45GB+)
+- Workflow: **only** bundled `LTX-fixed.json` (UI→API convert + UE/Get-Set patches)
+- Inputs: `asan.png` (Director timeline), plus `A.mp4` / `BaseScene (1).png` as named in graph
+- **SUCCESS** prompt `10cd3b5b-f698-4009-a6ac-f7a2eb2f21c3` → `LTX2_3_00002-audio.mp4` (~641KB)
+- Saved locally: `/Users/asan/Downloads/ltx_full_run_LTX2_3_00002-audio.mp4`
+
+Hardening lessons from the full run (bake into image later):
+1. **fp8 Gemma**: DualCLIPLoader `device=cpu` avoids `index_select_cuda` Float8 error on PyTorch 2.5.1
+2. **VHS encode**: workflow default `video/nvenc_av1-mp4` fails without `av1_nvenc` — use `video/h264-mp4`
+3. **VRAM**: full `LTXVLoopingSampler` HR path OOMs on 24GB; first-stage path works with `--lowvram` + reduced frames; 48GB+ GPU preferred for full graph
+4. API conversion must re-apply Use Everywhere CLIP links and EMPTY_LATENT → DirectorGuide
+
 ### Verification (2026-07-18) — PASSED without 48GB models
 
 - GHA run `29634454609` for commit `d5f5b37` → success (~8 min)
