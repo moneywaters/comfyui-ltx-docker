@@ -8,7 +8,6 @@ ENV COMFYUI_PATH=/opt/ComfyUI
 ENV BACKGROUND_MODELS=1
 ENV SKIP_MODEL_DOWNLOAD=0
 ENV PYTHONPATH=/opt/comfyui-fixes
-ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 ENV PATH=/opt/ffmpeg/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -1,11 +1,8 @@
-"""Auto-loaded from site-packages (and optionally PYTHONPATH).
+"""Intentionally minimal.
 
-Applies ComfyUI runtime fixes before any user code runs.
-Logs go to stderr only — never pollute stdout (breaks Docker $(python -c) captures).
+Importing torch before ComfyUI configures CUDA causes:
+  Allocator backend parsed at runtime != allocator backend parsed at load time
+
+The fp8 fix is applied via custom_nodes/00_fp8_embed_fix/prestartup_script.py
+after ComfyUI's normal torch bootstrap.
 """
-import sys
-
-try:
-    import fp8_embed_fix  # noqa: F401
-except Exception as exc:
-    print(f"[sitecustomize] fp8_embed_fix import failed: {exc}", flush=True, file=sys.stderr)

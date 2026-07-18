@@ -41,7 +41,7 @@ echo "Creating FULL instance from offer $OFFER_ID (models will download in backg
 # Vast --ssh overrides ENTRYPOINT — re-exec image start.sh.
 # BACKGROUND_MODELS=1: UI first, models in parallel.
 # start.sh enables --lowvram, NVENC ffmpeg, fp8 embed fix, VHS format by GPU.
-ONSTART='mkdir -p /var/run/sshd /workspace/output /workspace/input; /usr/sbin/sshd || true; export SKIP_MODEL_DOWNLOAD=0 BACKGROUND_MODELS=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True PYTHONPATH=/opt/comfyui-fixes; exec /opt/start.sh'
+ONSTART='mkdir -p /var/run/sshd /workspace/output /workspace/input; /usr/sbin/sshd || true; export SKIP_MODEL_DOWNLOAD=0 BACKGROUND_MODELS=1 PYTHONPATH=/opt/comfyui-fixes; exec /opt/start.sh'
 
 vastai create instance "$OFFER_ID" \
   --image "$IMAGE" \

@@ -5,8 +5,6 @@ ENV COMFYUI_PATH=/opt/ComfyUI
 ENV BACKGROUND_MODELS=1
 ENV SKIP_MODEL_DOWNLOAD=0
 # fp8 embedding fix (sitecustomize + explicit import path)
-ENV PYTHONPATH=/opt/comfyui-fixes
-ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 # Keep /opt/conda/bin — overriding PATH without it breaks pip/python from the base image.
 ENV PATH=/opt/ffmpeg/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -46,6 +44,8 @@ RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /opt/Comfy
 
 COPY nodes.sh /opt/nodes.sh
 RUN bash /opt/nodes.sh
+# fp8 embedding fix runs as ComfyUI prestartup (must NOT import torch via sitecustomize)
+COPY fp8_fix_node /opt/ComfyUI/custom_nodes/00_fp8_embed_fix
 
 RUN cd /opt/ComfyUI && for req in custom_nodes/*/requirements.txt; do \
         [ -f "$req" ] && /opt/conda/bin/pip install --no-cache-dir -r "$req" || true; \
@@ -68,15 +68,7 @@ RUN mkdir -p /opt/comfyui-fixes /root/.ssh \
     && echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAt/TE7gxwxhsaAvnYg/uZcZpa1ovhC0YOnCdjkJurZO clore.ai' > /root/.ssh/authorized_keys \
     && chmod 600 /root/.ssh/authorized_keys
 
-COPY fp8_embed_fix.py sitecustomize.py /opt/comfyui-fixes/
-# Install into site-packages. Clear PYTHONPATH for the path query so a
-# provisional sitecustomize on /opt/comfyui-fixes cannot pollute stdout.
-RUN SITE=$(PYTHONPATH= /opt/conda/bin/python3 -c 'import site; print(site.getsitepackages()[0])') \
-    && echo "site-packages=$SITE" \
-    && cp /opt/comfyui-fixes/sitecustomize.py "$SITE/sitecustomize.py" \
-    && cp /opt/comfyui-fixes/fp8_embed_fix.py "$SITE/fp8_embed_fix.py" \
-    && test -f "$SITE/sitecustomize.py" && test -f "$SITE/fp8_embed_fix.py" \
-    && echo "fp8 fix installed into $SITE"
+COPY fp8_embed_fix.py /opt/comfyui-fixes/fp8_embed_fix.py
 COPY start.sh /opt/start.sh
 COPY download-models.sh /opt/download-models.sh
 COPY smoke-test.sh /opt/smoke-test.sh
