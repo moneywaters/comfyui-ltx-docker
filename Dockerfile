@@ -64,6 +64,9 @@ RUN mkdir -p \
 
 RUN mkdir -p /opt/comfyui-fixes
 COPY fp8_embed_fix.py sitecustomize.py /opt/comfyui-fixes/
+RUN SITE=$(python3 -c 'import site; print(site.getsitepackages()[0])') \
+    && cp /opt/comfyui-fixes/sitecustomize.py "$SITE/sitecustomize.py" \
+    && cp /opt/comfyui-fixes/fp8_embed_fix.py "$SITE/fp8_embed_fix.py"
 COPY start.sh /opt/start.sh
 COPY download-models.sh /opt/download-models.sh
 COPY smoke-test.sh /opt/smoke-test.sh

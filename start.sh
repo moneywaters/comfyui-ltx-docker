@@ -119,10 +119,12 @@ fi
 
 # --- VRAM / allocator knobs ---
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
-# Ensure fp8 embedding fix loads before ComfyUI
+# Ensure fp8 embedding fix is importable (also installed into site-packages at build)
 export PYTHONPATH="/opt/comfyui-fixes:${PYTHONPATH:-}"
+/opt/conda/bin/python3 -c 'import fp8_embed_fix' 2>/dev/null && log "fp8_embed_fix importable" || log "WARN: fp8_embed_fix not importable"
 
 # ComfyUI CLI flags (override with COMFYUI_EXTRA_ARGS)
+
 # --lowvram: stream weights to GPU layer-by-layer (critical for 22B + long video)
 # --disable-smart-memory: avoid holding peak reserved memory
 LOWVRAM_FLAG="--lowvram"

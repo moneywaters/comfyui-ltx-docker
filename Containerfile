@@ -67,6 +67,11 @@ RUN mkdir -p /opt/comfyui-fixes /root/.ssh \
     && chmod 600 /root/.ssh/authorized_keys
 
 COPY fp8_embed_fix.py sitecustomize.py /opt/comfyui-fixes/
+# sitecustomize is only auto-imported from site-packages (not PYTHONPATH)
+RUN SITE=$(/opt/conda/bin/python3 -c 'import site; print(site.getsitepackages()[0])') \
+    && cp /opt/comfyui-fixes/sitecustomize.py "$SITE/sitecustomize.py" \
+    && cp /opt/comfyui-fixes/fp8_embed_fix.py "$SITE/fp8_embed_fix.py" \
+    && /opt/conda/bin/python3 -c 'import sitecustomize; import fp8_embed_fix; print("fp8 fix import OK")'
 COPY start.sh /opt/start.sh
 COPY download-models.sh /opt/download-models.sh
 COPY smoke-test.sh /opt/smoke-test.sh
