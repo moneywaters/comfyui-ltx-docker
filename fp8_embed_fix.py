@@ -28,12 +28,12 @@ def _collect_fp8_types():
 
 
 def apply() -> bool:
+    """Patch torch.nn.functional.embedding (always available) and comfy.ops if loaded."""
     try:
         import torch
         import torch.nn.functional as F
-        from comfy import ops  # type: ignore
     except Exception as exc:
-        log.warning("fp8 embed fix skipped (import): %s", exc)
+        log.warning("fp8 embed fix skipped (torch import): %s", exc)
         return False
 
     _collect_fp8_types()
@@ -41,43 +41,15 @@ def apply() -> bool:
         log.info("fp8 embed fix: no fp8 dtypes in this torch build")
         return False
 
-    # --- Patch Embedding.forward_comfy_cast_weights if present ---
-    emb_cls = getattr(ops, "Embedding", None) or getattr(getattr(ops, "manual_cast", None), "Embedding", None)
     patched = False
 
-    if emb_cls is not None and hasattr(emb_cls, "forward_comfy_cast_weights"):
-        _orig = emb_cls.forward_comfy_cast_weights
-
-        def _forward_cast(self, input, out_dtype=None, *args, **kwargs):  # noqa: ANN001
-            weight = self.weight
-            if weight is not None and weight.dtype in _FP8_TYPES:
-                target = out_dtype or torch.float16
-                if target is None or target in _FP8_TYPES:
-                    target = torch.float16
-                # Keep on same device; cast for index_select
-                weight = weight.to(dtype=target)
-                return F.embedding(
-                    input,
-                    weight,
-                    self.padding_idx,
-                    self.max_norm,
-                    self.norm_type,
-                    self.scale_grad_by_freq,
-                    self.sparse,
-                )
-            return _orig(self, input, out_dtype, *args, **kwargs)
-
-        emb_cls.forward_comfy_cast_weights = _forward_cast  # type: ignore[method-assign]
-        patched = True
-        log.info("fp8 embed fix: patched comfy.ops.Embedding.forward_comfy_cast_weights")
-
-    # --- Also wrap F.embedding as a belt-and-suspenders fallback ---
+    # Primary fix: wrap F.embedding so any caller (ComfyUI or torch) is safe
     if not getattr(F.embedding, "_fp8_embed_fixed", False):
         _orig_emb = F.embedding
 
         def _embedding(input, weight, *args, **kwargs):  # noqa: ANN001
             if weight is not None and getattr(weight, "dtype", None) in _FP8_TYPES:
-                target = torch.float16 if weight.is_cuda else torch.float32
+                target = torch.float16 if getattr(weight, "is_cuda", False) else torch.float32
                 weight = weight.to(dtype=target)
             return _orig_emb(input, weight, *args, **kwargs)
 
@@ -86,6 +58,41 @@ def apply() -> bool:
         torch.nn.functional.embedding = _embedding  # type: ignore[assignment]
         patched = True
         log.info("fp8 embed fix: wrapped torch.nn.functional.embedding")
+
+    # Optional: also patch comfy.ops.Embedding if ComfyUI is already importable
+    try:
+        from comfy import ops  # type: ignore
+
+        emb_cls = getattr(ops, "Embedding", None) or getattr(
+            getattr(ops, "manual_cast", None), "Embedding", None
+        )
+        if emb_cls is not None and hasattr(emb_cls, "forward_comfy_cast_weights"):
+            _orig = emb_cls.forward_comfy_cast_weights
+
+            def _forward_cast(self, input, out_dtype=None, *args, **kwargs):  # noqa: ANN001
+                weight = self.weight
+                if weight is not None and weight.dtype in _FP8_TYPES:
+                    target = out_dtype or torch.float16
+                    if target is None or target in _FP8_TYPES:
+                        target = torch.float16
+                    weight = weight.to(dtype=target)
+                    return F.embedding(
+                        input,
+                        weight,
+                        self.padding_idx,
+                        self.max_norm,
+                        self.norm_type,
+                        self.scale_grad_by_freq,
+                        self.sparse,
+                    )
+                return _orig(self, input, out_dtype, *args, **kwargs)
+
+            emb_cls.forward_comfy_cast_weights = _forward_cast  # type: ignore[method-assign]
+            patched = True
+            log.info("fp8 embed fix: patched comfy.ops.Embedding.forward_comfy_cast_weights")
+    except Exception:
+        # ComfyUI package not on sys.path until runtime cwd=/opt/ComfyUI — OK
+        pass
 
     return patched
 

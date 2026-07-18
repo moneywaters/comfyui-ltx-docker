@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git wget curl xz-utils openssh-server libsndfile1 \
         libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 libx11-6 \
         ffmpeg \
+        gcc g++ build-essential \
     && mkdir -p /var/run/sshd \
     && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config \
@@ -68,11 +69,13 @@ RUN mkdir -p /opt/comfyui-fixes /root/.ssh \
     && chmod 600 /root/.ssh/authorized_keys
 
 COPY fp8_embed_fix.py sitecustomize.py /opt/comfyui-fixes/
-# sitecustomize is only auto-imported from site-packages (not PYTHONPATH)
+# sitecustomize is only auto-imported from site-packages (not PYTHONPATH).
+# Do not import-test here: fp8 fix patches comfy.ops which is only fully available at runtime.
 RUN SITE=$(/opt/conda/bin/python3 -c 'import site; print(site.getsitepackages()[0])') \
     && cp /opt/comfyui-fixes/sitecustomize.py "$SITE/sitecustomize.py" \
     && cp /opt/comfyui-fixes/fp8_embed_fix.py "$SITE/fp8_embed_fix.py" \
-    && /opt/conda/bin/python3 -c 'import sitecustomize; import fp8_embed_fix; print("fp8 fix import OK")'
+    && test -f "$SITE/sitecustomize.py" && test -f "$SITE/fp8_embed_fix.py" \
+    && echo "fp8 fix installed into $SITE"
 COPY start.sh /opt/start.sh
 COPY download-models.sh /opt/download-models.sh
 COPY smoke-test.sh /opt/smoke-test.sh
