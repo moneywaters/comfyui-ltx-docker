@@ -97,11 +97,12 @@ def apply() -> bool:
     return patched
 
 
-# Auto-apply when imported as sitecustomize companion
+# Auto-apply when imported as sitecustomize companion.
+# Always print to stderr so shell $(python -c ...) stdout stays clean.
 try:
     if apply():
-        print("[fp8_embed_fix] applied", flush=True)
+        print("[fp8_embed_fix] applied", flush=True, file=__import__("sys").stderr)
     else:
-        print("[fp8_embed_fix] not applied", flush=True)
+        print("[fp8_embed_fix] not applied", flush=True, file=__import__("sys").stderr)
 except Exception as e:  # never block ComfyUI boot
-    print(f"[fp8_embed_fix] error: {e}", flush=True)
+    print(f"[fp8_embed_fix] error: {e}", flush=True, file=__import__("sys").stderr)
