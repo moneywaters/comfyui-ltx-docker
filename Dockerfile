@@ -11,13 +11,9 @@ ENV PYTHONPATH=/opt/comfyui-fixes
 ENV PATH=/opt/ffmpeg/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git wget curl xz-utils openssh-server ffmpeg libsndfile1 \
+    git wget curl xz-utils ffmpeg libsndfile1 \
     libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 libgl1-mesa-glx libx11-6 \
     gcc g++ build-essential \
-    && mkdir -p /var/run/sshd \
-    && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config \
-    && sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /opt/ffmpeg/bin \
@@ -47,9 +43,8 @@ RUN /opt/conda/bin/pip install --no-cache-dir piexif rotary-embedding-torch nume
     pandas segment-anything webcolors
 RUN /opt/conda/bin/pip install --no-cache-dir sqlalchemy opencv-python-headless scikit-image matplotlib
 
-RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh && \
-    echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAt/TE7gxwxhsaAvnYg/uZcZpa1ovhC0YOnCdjkJurZO clore.ai' > /root/.ssh/authorized_keys && \
-    chmod 600 /root/.ssh/authorized_keys
+# SSH is managed by Clore.ai's S6 overlay — no manual sshd config needed
+RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
 
 RUN mkdir -p \
     /opt/ComfyUI/models/diffusion_models \
@@ -67,12 +62,14 @@ RUN SITE=$(python3 -c 'import site; print(site.getsitepackages()[0])') \
     && cp /opt/comfyui-fixes/sitecustomize.py "$SITE/sitecustomize.py" \
     && cp /opt/comfyui-fixes/fp8_embed_fix.py "$SITE/fp8_embed_fix.py"
 COPY start.sh /opt/start.sh
+COPY onstart.sh /root/onstart.sh
 COPY download-models.sh /opt/download-models.sh
 COPY smoke-test.sh /opt/smoke-test.sh
-RUN chmod +x /opt/start.sh /opt/download-models.sh /opt/smoke-test.sh
+RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/smoke-test.sh
 
 COPY workflow/LTX-fixed.json /opt/ComfyUI/user/default/workflows/LTX-fixed.json
 
-EXPOSE 8188 22
+# Clore.ai's S6 overlay handles SSH — no manual sshd, no EXPOSE 22 needed.
+# /root/onstart.sh is executed by S6 on every container boot.
+EXPOSE 8188
 WORKDIR /opt/ComfyUI
-ENTRYPOINT ["/opt/start.sh"]
