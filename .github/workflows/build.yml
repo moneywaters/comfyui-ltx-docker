@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Extra Docker tag (also always pushes :latest)"
+        required: false
+        default: "clore"
 
 jobs:
   build:
@@ -16,7 +21,19 @@ jobs:
         run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
 
       - name: Build image
-        run: docker build -t moneywaters/comfyui-ltx:latest -f Containerfile .
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || 'clore' }}"
+          docker build \
+            -t moneywaters/comfyui-ltx:latest \
+            -t "moneywaters/comfyui-ltx:${TAG}" \
+            -t "moneywaters/comfyui-ltx:sha-${GITHUB_SHA::12}" \
+            -f Containerfile .
 
       - name: Push image
-        run: docker push moneywaters/comfyui-ltx:latest
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || 'clore' }}"
+          docker push moneywaters/comfyui-ltx:latest
+          docker push "moneywaters/comfyui-ltx:${TAG}"
+          docker push "moneywaters/comfyui-ltx:sha-${GITHUB_SHA::12}"

@@ -13,8 +13,17 @@ ENV PATH=/opt/ffmpeg/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git wget curl xz-utils ffmpeg libsndfile1 \
     libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 libgl1-mesa-glx libx11-6 \
+    openssh-server \
     gcc g++ build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/run/sshd /root/.ssh \
+    && chmod 700 /root/.ssh \
+    && ssh-keygen -A \
+    && sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config \
+    && echo "ClientAliveInterval 60" >> /etc/ssh/sshd_config \
+    && echo "ClientAliveCountMax 3" >> /etc/ssh/sshd_config
 
 RUN mkdir -p /opt/ffmpeg/bin \
     && cd /tmp \
@@ -43,9 +52,6 @@ RUN /opt/conda/bin/pip install --no-cache-dir piexif rotary-embedding-torch nume
     pandas segment-anything webcolors
 RUN /opt/conda/bin/pip install --no-cache-dir sqlalchemy opencv-python-headless scikit-image matplotlib
 
-# SSH is managed by Clore.ai's S6 overlay — no manual sshd config needed
-RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
-
 RUN mkdir -p \
     /opt/ComfyUI/models/diffusion_models \
     /opt/ComfyUI/models/latent_upscale_models \
@@ -69,7 +75,7 @@ RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/smoke-t
 
 COPY workflow/LTX-fixed.json /opt/ComfyUI/user/default/workflows/LTX-fixed.json
 
-# Clore.ai's S6 overlay handles SSH — no manual sshd, no EXPOSE 22 needed.
-# /root/onstart.sh is executed by S6 on every container boot.
-EXPOSE 8188
+# Self-contained for Clore/Vast/RunPod (see Containerfile).
+EXPOSE 22 8188
 WORKDIR /opt/ComfyUI
+ENTRYPOINT ["/opt/start.sh"]

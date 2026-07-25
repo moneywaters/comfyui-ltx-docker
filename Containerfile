@@ -12,8 +12,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git wget curl xz-utils libsndfile1 \
         libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 libx11-6 \
         ffmpeg \
+        openssh-server \
         gcc g++ build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/run/sshd /root/.ssh \
+    && chmod 700 /root/.ssh \
+    && ssh-keygen -A \
+    && sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config \
+    && echo "ClientAliveInterval 60" >> /etc/ssh/sshd_config \
+    && echo "ClientAliveCountMax 3" >> /etc/ssh/sshd_config
 
 # NVENC FFmpeg (av1_nvenc + h264_nvenc + hevc_nvenc). Host NVIDIA driver provides libnvidia-encode.
 # AV1 *encode* needs Ada (RTX 40xx)+; Ampere (30xx) uses h264_nvenc. start.sh picks format by compute_cap.
@@ -70,7 +79,9 @@ RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/smoke-t
 
 COPY workflow/LTX-fixed.json /opt/ComfyUI/user/default/workflows/LTX-fixed.json
 
-# Clore.ai's S6 overlay handles SSH — no manual sshd, no EXPOSE 22 needed.
-# /root/onstart.sh is executed by S6 on every container boot.
-EXPOSE 8188
+# Self-contained for Clore/Vast/RunPod:
+# - ENTRYPOINT starts sshd + ComfyUI (works without platform SSH inject)
+# - /root/onstart.sh is for Clore autossh_entrypoint mode (SSH by Clore, ComfyUI only)
+EXPOSE 22 8188
 WORKDIR /opt/ComfyUI
+ENTRYPOINT ["/opt/start.sh"]
