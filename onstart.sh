@@ -1,9 +1,6 @@
 #!/bin/bash
-# Clore autossh_entrypoint may invoke this. Prefer full init (SSH + ComfyUI).
-# If SSH already up, start.sh with DISABLE_SSHD only starts ComfyUI.
+# Clore autossh_entrypoint may run this. SSH is already provided by Clore or
+# by base-image supervisord — only start ComfyUI.
 set +e
-if ! pgrep -x sshd >/dev/null 2>&1; then
-    exec /etc/supervisor/init.sh
-fi
 export DISABLE_SSHD=1
 exec /opt/start.sh
