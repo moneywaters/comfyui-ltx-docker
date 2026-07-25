@@ -1,5 +1,27 @@
 # ComfyUI LTX Docker Build — Progress State
 
+## Install on a *standard* Clore image (recommended path)
+
+Clore custom Hub tags often stay `mon_container=0` (no SSH). Official
+`cloreai/jupyter` / `ubuntu` + autossh work. After SSH:
+
+```bash
+# On the pod (root):
+curl -fsSL https://raw.githubusercontent.com/moneywaters/comfyui-ltx-docker/main/install-on-clore.sh | bash
+
+# Skip ~45GB models for a quick UI smoke test:
+SKIP_MODEL_DOWNLOAD=1 curl -fsSL https://raw.githubusercontent.com/moneywaters/comfyui-ltx-docker/main/install-on-clore.sh | bash
+
+# Start later:
+start-comfyui
+# or: SKIP_MODEL_DOWNLOAD=0 /opt/download-models.sh
+```
+
+Order: use image `cloreai/jupyter:ubuntu24.04-v2`, ports `22/tcp` + `8188/http`,
+`autossh_entrypoint: true`, your `ssh_key`. After install, open Clore `http_pub`
+for ComfyUI (may need to re-map 8188 if you only opened 8888 at order time).
+
+
 ## Session: 2026-07-18 (logo hang + first-boot reliability)
 
 ### Root causes of "stuck on ComfyUI logo"
