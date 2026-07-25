@@ -16,47 +16,43 @@ if [ ! -f /etc/ssh/ssh_host_rsa_key ] && [ ! -f /etc/ssh/ssh_host_ed25519_key ];
     ssh-keygen -A 2>/dev/null || true
 fi
 
-# Accept keys from common platform env vars
-for _keyvar in AUTHORIZED_KEYS SSH_PUBLIC_KEY PUBLIC_KEY SSH_KEY; do
-    eval "_kval=\${${_keyvar}:-}"
-    if [ -n "${_kval}" ]; then
-        echo "${_kval}" >> /root/.ssh/authorized_keys
-    fi
-done
-# Clore/Vast sometimes drop keys into these files
-for _kf in /root/.ssh/authorized_keys /ssh/authorized_keys /etc/ssh/authorized_keys; do
-    if [ -f "$_kf" ] && [ "$_kf" != /root/.ssh/authorized_keys ]; then
-        cat "$_kf" >> /root/.ssh/authorized_keys || true
-    fi
-done
-if [ -f /root/.ssh/authorized_keys ]; then
-    sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys
-    chmod 600 /root/.ssh/authorized_keys
-fi
-
-# Optional root password (Clore ssh_password / Vast)
-if [ -n "${SSH_PASSWORD:-}" ]; then
-    echo "root:${SSH_PASSWORD}" | chpasswd 2>/dev/null || true
-    log "Root password set from SSH_PASSWORD"
-elif [ -n "${PASSWORD:-}" ]; then
-    echo "root:${PASSWORD}" | chpasswd 2>/dev/null || true
-    log "Root password set from PASSWORD"
-fi
-
-if [ "${DISABLE_SSHD:-0}" != "1" ] && command -v /usr/sbin/sshd >/dev/null 2>&1; then
-    if ! pgrep -x sshd >/dev/null 2>&1; then
-        /usr/sbin/sshd -D -e >/var/log/sshd.log 2>&1 &
-        sleep 0.5
-        if pgrep -x sshd >/dev/null 2>&1; then
-            log "SSH daemon started (self-managed)"
-        else
-            # foreground-style retry without -D background
-            /usr/sbin/sshd || true
-            log "SSH daemon start attempted (see /var/log/sshd.log)"
+# Clore injects SSH_KEY / SSH_PASSWORD (same as cloreai/jupyter).
+# Vast/others may use AUTHORIZED_KEYS / PUBLIC_KEY / PASSWORD.
+if [ "${DISABLE_SSHD:-0}" != "1" ]; then
+    for _keyvar in SSH_KEY AUTHORIZED_KEYS SSH_PUBLIC_KEY PUBLIC_KEY; do
+        eval "_kval=\${${_keyvar}:-}"
+        if [ -n "${_kval}" ]; then
+            echo "${_kval}" >> /root/.ssh/authorized_keys
         fi
-    else
-        log "SSH daemon already running (platform-managed)"
+    done
+    for _kf in /ssh/authorized_keys /etc/ssh/authorized_keys; do
+        if [ -f "$_kf" ]; then
+            cat "$_kf" >> /root/.ssh/authorized_keys || true
+        fi
+    done
+    if [ -f /root/.ssh/authorized_keys ]; then
+        sort -u /root/.ssh/authorized_keys -o /root/.ssh/authorized_keys
+        chmod 600 /root/.ssh/authorized_keys
     fi
+
+    if [ -n "${SSH_PASSWORD:-}" ]; then
+        echo "root:${SSH_PASSWORD}" | chpasswd 2>/dev/null || true
+        log "Root password set from SSH_PASSWORD"
+    elif [ -n "${PASSWORD:-}" ]; then
+        echo "root:${PASSWORD}" | chpasswd 2>/dev/null || true
+        log "Root password set from PASSWORD"
+    fi
+
+    if command -v /usr/sbin/sshd >/dev/null 2>&1; then
+        if ! pgrep -x sshd >/dev/null 2>&1; then
+            /usr/sbin/sshd || true
+            log "SSH daemon started (self-managed fallback)"
+        else
+            log "SSH daemon already running (supervisor/platform)"
+        fi
+    fi
+else
+    log "DISABLE_SSHD=1 — ComfyUI-only (SSH via Clore supervisor)"
 fi
 
 mkdir -p /workspace/output /workspace/input /opt/ComfyUI/user/default/workflows

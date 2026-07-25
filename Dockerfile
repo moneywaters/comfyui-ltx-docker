@@ -13,17 +13,18 @@ ENV PATH=/opt/ffmpeg/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git wget curl xz-utils ffmpeg libsndfile1 \
     libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 libgl1-mesa-glx libx11-6 \
-    openssh-server \
+    openssh-server supervisor \
     gcc g++ build-essential \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /var/run/sshd /root/.ssh \
+    && mkdir -p /var/run/sshd /run/sshd /root/.ssh /var/log/supervisor /etc/supervisor/conf.d \
     && chmod 700 /root/.ssh \
     && ssh-keygen -A \
     && sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config \
     && sed -i 's/#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
     && sed -i 's/#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config \
     && echo "ClientAliveInterval 60" >> /etc/ssh/sshd_config \
-    && echo "ClientAliveCountMax 3" >> /etc/ssh/sshd_config
+    && echo "ClientAliveCountMax 3" >> /etc/ssh/sshd_config \
+    && touch /etc/supervisor/SSH_INIT_SET
 
 RUN mkdir -p /opt/ffmpeg/bin \
     && cd /tmp \
@@ -71,11 +72,16 @@ COPY start.sh /opt/start.sh
 COPY onstart.sh /root/onstart.sh
 COPY download-models.sh /opt/download-models.sh
 COPY smoke-test.sh /opt/smoke-test.sh
-RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/smoke-test.sh
+COPY clore/supervisor/init.sh /etc/supervisor/init.sh
+COPY clore/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY clore/delegated-entrypoint.sh /etc/delegated-entrypoint.sh
+RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/smoke-test.sh \
+        /etc/supervisor/init.sh /etc/delegated-entrypoint.sh \
+    && touch /etc/supervisor/SSH_INIT_SET
 
 COPY workflow/LTX-fixed.json /opt/ComfyUI/user/default/workflows/LTX-fixed.json
 
-# Self-contained for Clore/Vast/RunPod (see Containerfile).
+# Match cloreai/jupyter (see Containerfile).
 EXPOSE 22 8188
 WORKDIR /opt/ComfyUI
-ENTRYPOINT ["/opt/start.sh"]
+CMD ["bash", "-c", "/etc/supervisor/init.sh"]
