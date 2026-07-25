@@ -28,3 +28,9 @@ jobs:
             .
           docker push moneywaters/comfyui-ltx:ssh-test
           docker push moneywaters/comfyui-ltx:ssh-only
+
+          # Retag official Clore jupyter under our repo to test custom tags
+          docker build -f Dockerfile.ssh-from-clore \
+            -t moneywaters/comfyui-ltx:ssh-from-clore \
+            .
+          docker push moneywaters/comfyui-ltx:ssh-from-clore

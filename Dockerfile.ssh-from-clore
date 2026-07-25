@@ -1,0 +1,4 @@
+# SSH smoke: inherit working Clore official stack, only prove custom Hub tags work.
+FROM cloreai/jupyter:ubuntu24.04-v2
+LABEL clore.ssh-test="from-official"
+# Keep official CMD: bash -c /etc/supervisor/init.sh
