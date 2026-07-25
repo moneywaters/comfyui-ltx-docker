@@ -1,6 +1,9 @@
 #!/bin/bash
-# Clore autossh_entrypoint path: Clore may run this after/instead of image CMD.
-# Start ComfyUI only (SSH is Clore-managed or already via supervisord).
-set -euo pipefail
+# Clore autossh_entrypoint may invoke this. Prefer full init (SSH + ComfyUI).
+# If SSH already up, start.sh with DISABLE_SSHD only starts ComfyUI.
+set +e
+if ! pgrep -x sshd >/dev/null 2>&1; then
+    exec /etc/supervisor/init.sh
+fi
 export DISABLE_SSHD=1
 exec /opt/start.sh

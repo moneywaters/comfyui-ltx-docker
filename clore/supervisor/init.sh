@@ -1,52 +1,87 @@
 #!/bin/bash
-# Clore.ai-compatible SSH bootstrap (mirrors cloreai/jupyter:ubuntu24.04-v2).
-# Clore injects SSH_PASSWORD and SSH_KEY as env vars at container start.
-set -euo pipefail
+# Clore-compatible PID1 bootstrap.
+# SSH must come up FIRST and stay up regardless of ComfyUI / model downloads.
+# Mirrors cloreai/jupyter contract: env SSH_KEY + SSH_PASSWORD.
+set +e
+exec > >(tee -a /var/log/clore-init.log) 2>&1
+echo "[clore-init] start $(date -u)"
 
-cd /etc/supervisor/ || true
-
-SSH_PASSWORD_SET=/etc/supervisor/SSH_PASSWORD_SET
-SSH_INIT_SET=/etc/supervisor/SSH_INIT_SET
-SSH_KEY_FILE=/root/.ssh/authorized_keys
-
-mkdir -p /root/.ssh /run/sshd /var/run/sshd
+mkdir -p /run/sshd /var/run/sshd /root/.ssh /var/log /var/log/supervisor
 chmod 700 /root/.ssh
 
-if [ -n "${SSH_PASSWORD:-}" ]; then
-    if [ ! -f "$SSH_PASSWORD_SET" ]; then
-        echo "root:${SSH_PASSWORD}" | chpasswd
-        touch "$SSH_PASSWORD_SET"
-        if ! grep -q '^PermitRootLogin yes' /etc/ssh/sshd_config 2>/dev/null; then
-            echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
-        fi
-    fi
-    export SSH_PASSWORD=""
+# Container-friendly sshd
+if [ -f /etc/ssh/sshd_config ]; then
+    sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+    sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+    sed -i 's/^#\?UsePAM.*/UsePAM no/' /etc/ssh/sshd_config
+    grep -q '^PermitRootLogin yes' /etc/ssh/sshd_config || echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+    grep -q '^PasswordAuthentication yes' /etc/ssh/sshd_config || echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config
+    grep -q '^PubkeyAuthentication yes' /etc/ssh/sshd_config || echo 'PubkeyAuthentication yes' >> /etc/ssh/sshd_config
+    grep -q '^UsePAM no' /etc/ssh/sshd_config || echo 'UsePAM no' >> /etc/ssh/sshd_config
 fi
 
-if [ -n "${SSH_KEY:-}" ]; then
-    if [ ! -f "$SSH_KEY_FILE" ] || [ ! -s "$SSH_KEY_FILE" ]; then
-        echo "${SSH_KEY}" > "$SSH_KEY_FILE"
-    else
-        # append if not already present
-        if ! grep -qF "${SSH_KEY}" "$SSH_KEY_FILE" 2>/dev/null; then
-            echo "${SSH_KEY}" >> "$SSH_KEY_FILE"
-        fi
-    fi
-    chmod 600 "$SSH_KEY_FILE"
-    export SSH_KEY=""
-fi
-
-if [ -f "$SSH_INIT_SET" ]; then
-    rm -f /etc/ssh/ssh_host_ecdsa_key /etc/ssh/ssh_host_ecdsa_key.pub \
-          /etc/ssh/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key.pub \
-          /etc/ssh/ssh_host_rsa_key /etc/ssh/ssh_host_rsa_key.pub
+# Host keys (regenerate once if marker present, else ensure they exist)
+if [ -f /etc/supervisor/SSH_INIT_SET ]; then
+    rm -f /etc/ssh/ssh_host_* 2>/dev/null
     ssh-keygen -A
-    mkdir -p /run/sshd /var/run/sshd
-    rm -f "$SSH_INIT_SET"
+    rm -f /etc/supervisor/SSH_INIT_SET
+else
+    [ -f /etc/ssh/ssh_host_rsa_key ] || [ -f /etc/ssh/ssh_host_ed25519_key ] || ssh-keygen -A
 fi
 
-# Prefer conf.d layout used by Clore official images
-if [ -f /etc/supervisor/conf.d/supervisord.conf ]; then
-    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
+# Clore injects these env vars (same names as official jupyter image)
+if [ -n "${SSH_PASSWORD:-}" ]; then
+    echo "root:${SSH_PASSWORD}" | chpasswd
+    echo "[clore-init] root password set from SSH_PASSWORD"
 fi
-exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+if [ -n "${SSH_KEY:-}" ]; then
+    printf '%s\n' "${SSH_KEY}" > /root/.ssh/authorized_keys
+    chmod 600 /root/.ssh/authorized_keys
+    echo "[clore-init] authorized_keys written from SSH_KEY"
+fi
+# Fallback env names
+if [ -n "${AUTHORIZED_KEYS:-}" ] && [ ! -s /root/.ssh/authorized_keys ]; then
+    printf '%s\n' "${AUTHORIZED_KEYS}" > /root/.ssh/authorized_keys
+    chmod 600 /root/.ssh/authorized_keys
+fi
+
+# ---------- SSH FIRST (must not wait on models/comfy) ----------
+if pgrep -x sshd >/dev/null 2>&1; then
+    echo "[clore-init] sshd already running"
+else
+    /usr/sbin/sshd
+    sleep 0.3
+    if pgrep -x sshd >/dev/null 2>&1; then
+        echo "[clore-init] sshd STARTED (independent of ComfyUI)"
+    else
+        echo "[clore-init] WARN: sshd failed first try, retry -D background"
+        /usr/sbin/sshd -D -e >> /var/log/sshd.log 2>&1 &
+        sleep 0.5
+        pgrep -a sshd || echo "[clore-init] ERROR: sshd still not running"
+    fi
+fi
+
+# ---------- ComfyUI + model downloads in background ----------
+# Never block SSH. Failures here must not kill the container.
+if [ -x /opt/start.sh ]; then
+    (
+        export DISABLE_SSHD=1
+        # start.sh uses set -e; isolate so it cannot tear down PID1
+        /opt/start.sh
+    ) >> /var/log/comfyui.log 2>&1 &
+    echo "[clore-init] ComfyUI launched in background pid=$!"
+else
+    echo "[clore-init] WARN: /opt/start.sh missing"
+fi
+
+echo "[clore-init] entering keep-alive (SSH should already work)"
+# Keep container alive forever — sshd is daemonized
+while true; do
+    # restart sshd if it died
+    if ! pgrep -x sshd >/dev/null 2>&1; then
+        echo "[clore-init] sshd died, restarting"
+        /usr/sbin/sshd || true
+    fi
+    sleep 30
+done

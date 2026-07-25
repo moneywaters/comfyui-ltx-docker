@@ -81,7 +81,7 @@ RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/smoke-t
 
 COPY workflow/LTX-fixed.json /opt/ComfyUI/user/default/workflows/LTX-fixed.json
 
-# Match cloreai/jupyter (see Containerfile).
+# See Containerfile — SSH-first PID1.
 EXPOSE 22 8188
 WORKDIR /opt/ComfyUI
-CMD ["bash", "-c", "/etc/supervisor/init.sh"]
+CMD ["/etc/supervisor/init.sh"]

@@ -1,5 +1,8 @@
 #!/bin/bash
-set -euo pipefail
+# ComfyUI + optional model download. Must NEVER be required for SSH.
+# When launched from clore init, DISABLE_SSHD=1 and this runs in background.
+# Do not use "set -e" globally — a model/download glitch must not kill the process tree unexpectedly.
+set -uo pipefail
 
 log() { echo "[start] $*"; }
 

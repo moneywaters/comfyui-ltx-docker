@@ -86,8 +86,9 @@ RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/smoke-t
 
 COPY workflow/LTX-fixed.json /opt/ComfyUI/user/default/workflows/LTX-fixed.json
 
-# Match cloreai/jupyter: no ENTRYPOINT, CMD runs supervisor init (sshd + ComfyUI).
-# Clore injects SSH_KEY / SSH_PASSWORD env vars; init.sh applies them then starts supervisord.
+# PID1 = clore init: starts sshd FIRST, then ComfyUI in background.
+# Model downloads never block SSH. Clore injects SSH_KEY / SSH_PASSWORD.
 EXPOSE 22 8188
 WORKDIR /opt/ComfyUI
-CMD ["bash", "-c", "/etc/supervisor/init.sh"]
+# No ENTRYPOINT (matches cloreai/jupyter). CMD is the only boot path.
+CMD ["/etc/supervisor/init.sh"]
