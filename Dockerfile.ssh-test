@@ -1,0 +1,25 @@
+# Minimal Clore SSH smoke image — no PyTorch/ComfyUI.
+# Proves Clore SSH_KEY/SSH_PASSWORD + port 22 work before heavy images.
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        openssh-server ca-certificates curl wget \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /run/sshd /var/run/sshd /root/.ssh /var/log \
+    && chmod 700 /root/.ssh \
+    && ssh-keygen -A \
+    && sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config \
+    && sed -i 's/^#\?UsePAM.*/UsePAM no/' /etc/ssh/sshd_config \
+    && grep -q '^PermitRootLogin yes' /etc/ssh/sshd_config || echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config \
+    && grep -q '^UsePAM no' /etc/ssh/sshd_config || echo 'UsePAM no' >> /etc/ssh/sshd_config
+
+COPY clore/ssh-test-init.sh /usr/local/bin/ssh-test-init.sh
+RUN chmod +x /usr/local/bin/ssh-test-init.sh
+
+EXPOSE 22
+# No ENTRYPOINT — match cloreai/jupyter style
+CMD ["/usr/local/bin/ssh-test-init.sh"]
