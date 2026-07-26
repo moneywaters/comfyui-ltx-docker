@@ -1,9 +1,29 @@
 # ComfyUI LTX Docker Build — Progress State
 
-## Install on a *standard* Clore image (recommended path)
+## Clore custom image (preferred path) — 2026-07-26
 
-Clore custom Hub tags often stay `mon_container=0` (no SSH). Official
-`cloreai/jupyter` / `ubuntu` + autossh work. After SSH:
+See **[CLORE.md](./CLORE.md)** for full deploy docs.
+
+**Root cause of `mon_container=0`:** image lost official Clore PID1
+(`CMD bash -c /etc/supervisor/init.sh`) and/or openssh, so sshd never ran.
+
+**Fix (this session):**
+
+| Change | Why |
+|--------|-----|
+| `CMD ["bash","-c","/etc/supervisor/init.sh"]` explicit | Match `cloreai/jupyter`; mon_container + reverse SSH |
+| Re-install `openssh-server` + `supervisor` | Survive apt churn |
+| conf.d: `sshd` + `comfyui` + `delegated_entrypoint` only | Do not replace official `init.sh` |
+| `/opt/ensure-clore-ssh.sh` build check | Fail the image build if SSH contract is broken |
+| `EXPOSE 22 8188` | Clore order: `22/tcp` + `8188/http` |
+
+Deploy image: `moneywaters/comfyui-ltx:latest` with ports **22/tcp + 8188/http**,
+`SSH_PASSWORD` / `SSH_KEY`, `autossh_entrypoint=true`.
+
+## Fallback: install on a *standard* Clore image
+
+If custom image still fails on a host, order `cloreai/jupyter:ubuntu24.04-v2`
+then:
 
 ```bash
 # On the pod (root):
@@ -11,15 +31,9 @@ curl -fsSL https://raw.githubusercontent.com/moneywaters/comfyui-ltx-docker/main
 
 # Skip ~45GB models for a quick UI smoke test:
 SKIP_MODEL_DOWNLOAD=1 curl -fsSL https://raw.githubusercontent.com/moneywaters/comfyui-ltx-docker/main/install-on-clore.sh | bash
-
-# Start later:
-start-comfyui
-# or: SKIP_MODEL_DOWNLOAD=0 /opt/download-models.sh
 ```
 
-Order: use image `cloreai/jupyter:ubuntu24.04-v2`, ports `22/tcp` + `8188/http`,
-`autossh_entrypoint: true`, your `ssh_key`. After install, open Clore `http_pub`
-for ComfyUI (may need to re-map 8188 if you only opened 8888 at order time).
+Order: ports `22/tcp` + `8188/http`, `autossh_entrypoint: true`, your `ssh_key`.
 
 
 ## Session: 2026-07-18 (logo hang + first-boot reliability)

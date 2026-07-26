@@ -1,6 +1,16 @@
-# Build LTX/ComfyUI ON TOP of the official Clore Jupyter image so we inherit
-# the working SSH stack (supervisor init + SSH_KEY/SSH_PASSWORD + sshd).
-# Experiments: cloreai/jupyter reaches mon_container=2 + SSH; custom bases often stay mon=0.
+# =============================================================================
+# moneywaters/comfyui-ltx — Clore-compatible LTX ComfyUI image
+#
+# Base: official cloreai/jupyter (SSH via supervisor + SSH_KEY/SSH_PASSWORD).
+# Clore mon_container / reverse SSH require:
+#   1. openssh-server + supervisord
+#   2. CMD = bash -c /etc/supervisor/init.sh   (official entry)
+#   3. conf.d programs: sshd + app + delegated_entrypoint
+#   4. Port 22/tcp (+ 8188/http for ComfyUI)
+#
+# Docs: https://docs.clore.ai/for-renters/docker-images
+#       https://docs.clore.ai/guides/image-generation/comfyui
+# =============================================================================
 FROM cloreai/jupyter:ubuntu24.04-v2
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -8,17 +18,26 @@ ENV PYTHONUNBUFFERED=1
 ENV COMFYUI_PATH=/opt/ComfyUI
 ENV BACKGROUND_MODELS=1
 ENV SKIP_MODEL_DOWNLOAD=0
+ENV DISABLE_SSHD=1
 ENV COMFY_PYTHON=/opt/comfyui-venv/bin/python3
 # Keep CUDA/NVIDIA paths from base; prepend ffmpeg + venv
 ENV PATH=/opt/ffmpeg/bin:/opt/comfyui-venv/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 USER root
 
+# openssh-server + supervisor are already on cloreai/jupyter; re-install so
+# apt churn never leaves mon_container without sshd. Also need build tools.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git wget curl xz-utils libsndfile1 \
+        openssh-server supervisor \
+        git wget curl xz-utils ca-certificates libsndfile1 \
         libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 \
         ffmpeg gcc g++ build-essential python3-venv python3-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /run/sshd /var/run/sshd /var/log/supervisor /root/.ssh \
+    && chmod 700 /root/.ssh \
+    && test -x /usr/sbin/sshd \
+    && test -x /usr/bin/supervisord \
+    && test -x /etc/supervisor/init.sh
 
 # NVENC-capable ffmpeg (host driver provides libnvidia-encode)
 RUN mkdir -p /opt/ffmpeg/bin \
@@ -79,17 +98,28 @@ COPY start.sh /opt/start.sh
 COPY onstart.sh /root/onstart.sh
 COPY download-models.sh /opt/download-models.sh
 COPY smoke-test.sh /opt/smoke-test.sh
-# Only replace supervisord programs (sshd + comfyui). Keep official /etc/supervisor/init.sh.
+COPY clore/ensure-clore-ssh.sh /opt/ensure-clore-ssh.sh
+# ONLY replace conf.d programs (sshd + comfyui + delegated). Never touch official init.sh.
 COPY clore/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-# Ensure delegated entrypoint exists (present on official image; re-copy our copy for safety)
 COPY clore/delegated-entrypoint.sh /etc/delegated-entrypoint.sh
-RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/smoke-test.sh \
-        /etc/delegated-entrypoint.sh \
-    && test -x /etc/supervisor/init.sh
-
 COPY workflow/LTX-fixed.json /opt/ComfyUI/user/default/workflows/LTX-fixed.json
 
-# Inherit CMD from cloreai/jupyter: bash -c /etc/supervisor/init.sh
-# That init applies SSH_KEY/SSH_PASSWORD then starts supervisord (sshd + comfyui).
+RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/smoke-test.sh \
+        /opt/ensure-clore-ssh.sh /etc/delegated-entrypoint.sh \
+        /etc/supervisor/init.sh \
+    && bash /opt/ensure-clore-ssh.sh \
+    # First-boot host key regen marker used by official init.sh
+    && touch /etc/supervisor/SSH_INIT_SET \
+    && test -x /etc/supervisor/init.sh \
+    && test -x /usr/sbin/sshd \
+    && grep -q 'program:sshd' /etc/supervisor/conf.d/supervisord.conf \
+    && grep -q 'program:comfyui' /etc/supervisor/conf.d/supervisord.conf \
+    && echo "Clore SSH contract verified at build time"
+
+# Clore maps these (order form): 22/tcp + 8188/http
 EXPOSE 22 8188
-WORKDIR /opt/ComfyUI
+
+# Official Clore jupyter entry — applies SSH_KEY/SSH_PASSWORD then supervisord.
+# Do NOT replace with /opt/start.sh; that would skip sshd and mon_container stays 0.
+WORKDIR /root
+CMD ["bash", "-c", "/etc/supervisor/init.sh"]
