@@ -4,17 +4,27 @@
 #
 # SimplePod contract (from their comfyui template):
 #   - container entrypoint starts the app (ComfyUI on 8188)
-#   - SimplePod maps port 22 for SSH and provides keys itself
-#   - startScript may override CMD; we make /opt/start.sh self-manage SSH
+#   - SimplePod maps port 22 for SSH and provides keys itself (isRunSshServerOn)
+#   - startScript may override CMD; we make /opt/start.sh the single PID 1
 #
-# Critical: cloreai/jupyter base ships an ENTRYPOINT (Clore init) that would
-# take over on SimplePod. We clear it so /opt/start.sh becomes PID 1.
+# Critical fixes vs base image:
+#   1. cloreai/jupyter base ships an ENTRYPOINT (Clore init) that would take
+#      over on SimplePod — cleared with ENTRYPOINT [].
+#   2. Base supervisor auto-starts ComfyUI; combined with the CMD this caused a
+#      port-8188 race (two ComfyUI processes). We remove the supervisor program
+#      and let /opt/start.sh be the only starter.
+#   3. DISABLE_SSHD=1 — SimplePod provides SSH; our self-managed sshd would
+#      fight it for port 22.
 # =============================================================================
 FROM moneywaters/comfyui-ltx:latest
 
-ENV DISABLE_SSHD=0
+ENV DISABLE_SSHD=1
 ENV BACKGROUND_MODELS=1
 ENV SKIP_MODEL_DOWNLOAD=0
+
+# Remove the base supervisor ComfyUI program so only /opt/start.sh runs it.
+RUN rm -f /etc/supervisor/conf.d/supervisord.conf \
+    && printf '[supervisord]\nnodaemon=true\n' > /etc/supervisor/conf.d/supervisord.conf
 
 # Clear any inherited ENTRYPOINT/CMD from the Clore base.
 ENTRYPOINT []
