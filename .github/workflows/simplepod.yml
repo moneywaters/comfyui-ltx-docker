@@ -1,0 +1,32 @@
+name: Build SimplePod Image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile.simplepod"
+      - "start.sh"
+      - "download-models.sh"
+      - "Containerfile"
+      - "Dockerfile"
+      - ".github/workflows/simplepod.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASS }}" | docker login -u "${{ secrets.DOCKER_USER }}" --password-stdin
+
+      - name: Build and push SimplePod image
+        run: |
+          set -euo pipefail
+          # First build the base (H3 pivot) then the simplepod overlay
+          docker build -t moneywaters/comfyui-ltx:latest -f Containerfile .
+          docker build -t moneywaters/comfyui-ltx:simplepod -f Dockerfile.simplepod .
+          docker push moneywaters/comfyui-ltx:latest
+          docker push moneywaters/comfyui-ltx:simplepod
