@@ -82,6 +82,9 @@ COPY clore/ensure-clore-ssh.sh /opt/ensure-clore-ssh.sh
 COPY clore/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY clore/delegated-entrypoint.sh /etc/delegated-entrypoint.sh
 COPY workflow/LTX-fixed.json /opt/ComfyUI/user/default/workflows/LTX-fixed.json
+COPY workflow/video_minimax_h3_t2v.json /opt/ComfyUI/user/default/workflows/video_minimax_h3_t2v.json
+COPY workflow/video_minimax_h3_i2v.json /opt/ComfyUI/user/default/workflows/video_minimax_h3_i2v.json
+COPY workflow/video_minimax_h3_r2v.json /opt/ComfyUI/user/default/workflows/video_minimax_h3_r2v.json
 
 RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/smoke-test.sh \
         /opt/ensure-clore-ssh.sh /etc/delegated-entrypoint.sh \

@@ -12,17 +12,13 @@ ok()   { echo "  PASS  $*"; }
 bad()  { echo "  FAIL  $*"; FAIL=$((FAIL+1)); }
 info() { echo "  info  $*"; }
 
-echo "=== ComfyUI LTX smoke test against $BASE ==="
+echo "=== ComfyUI MiniMax H3 smoke test against $BASE ==="
 
 # 1. Custom node packs on disk
 echo "-- custom_nodes on disk --"
 REQUIRED_DIRS=(
   ComfyUI-Manager
-  ComfyUI-LTXVideo
   ComfyUI-KJNodes
-  ComfyUI-Koolook
-  ComfyUI-ListHelper
-  WhatDreamsCost-ComfyUI
   ComfyUI-VideoHelperSuite
   comfyui-mcp-panel
   rgthree-comfy
@@ -71,7 +67,7 @@ else
   bad "system_stats unreachable"
 fi
 
-# 4. Critical node types for LTX-fixed.json
+# 4. Critical node types for MiniMax H3 workflows
 echo "-- required node types in /object_info --"
 # object_info can be huge; stream-filter with python
 if curl -sf --max-time 180 "$BASE/object_info" > /tmp/object_info.json; then
@@ -79,14 +75,14 @@ if curl -sf --max-time 180 "$BASE/object_info" > /tmp/object_info.json; then
   python3 - <<'PY' || true
 import json, sys
 hard = [
-    "AudioToFrameCount",       # ComfyUI-ListHelper
-    "LTXDirectorGuide",        # WhatDreamsCost-ComfyUI
-    "VHS_VideoCombine",        # VideoHelperSuite
+    "MiniMaxH3ImageToVideo",     # native H3 T2V/I2V (FL2VA)
+    "MiniMaxH3ReferenceToVideo", # native H3 R2V (Ref2VA)
+    "VHS_VideoCombine",          # VideoHelperSuite
 ]
 soft = [
-    "LTXDirector__koolook",    # ComfyUI-Koolook (nice-to-have; workflow also has bare LTXDirectorGuide)
-    "SetNode",                 # KJNodes virtual
-    "GetNode",
+    "UNETLoader",
+    "BasicGuider",
+    "ResolutionSelector",        # template resolution node
 ]
 info = json.load(open("/tmp/object_info.json"))
 types = set(info.keys())
@@ -103,17 +99,16 @@ for n in soft:
         print(f"  PASS  node type present: {n}")
     else:
         print(f"  info  optional/virtual node not in object_info: {n}")
-# At least some LTXVideo backend nodes must load
-ltx_backend = [t for t in types if t.startswith("LTXV") or t.startswith("LTX")]
-if ltx_backend:
-    print(f"  PASS  LTX backend types loaded ({len(ltx_backend)})")
+# At least some H3 / MiniMax backend nodes must load
+h3_backend = [t for t in types if "MiniMaxH3" in t]
+if h3_backend:
+    print(f"  PASS  MiniMaxH3 backend types loaded ({len(h3_backend)})")
 else:
-    print("  FAIL  no LTX* backend node types found")
-    missing.append("LTX*")
+    print("  FAIL  no MiniMaxH3* backend node types found")
+    missing.append("MiniMaxH3*")
 
-# LTX family soft check
-ltx = sorted(t for t in types if "LTX" in t or "ltx" in t)
-print(f"  info  LTX-related types ({len(ltx)}): {', '.join(ltx[:25])}{'...' if len(ltx)>25 else ''}")
+h3 = sorted(t for t in types if "MiniMax" in t or "minimax" in t)
+print(f"  info  MiniMax-related types ({len(h3)}): {', '.join(h3[:25])}{'...' if len(h3)>25 else ''}")
 open("/tmp/smoke_missing.txt","w").write("\n".join(missing))
 sys.exit(1 if missing else 0)
 PY
