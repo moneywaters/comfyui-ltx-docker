@@ -160,13 +160,29 @@ if [ "${COMFYUI_NO_LOWVRAM:-0}" != "1" ]; then
 fi
 EXTRA_ARGS="${COMFYUI_EXTRA_ARGS:-}"
 
+# Guard: ensure only ONE ComfyUI process per container. SimplePod may invoke
+# start.sh via multiple paths (template startScript + image CMD + base
+# supervisor), so use a flock to make it strictly single-instance.
+exec 9>/tmp/comfyui.lock
+if ! flock -n 9; then
+    log "Another start.sh instance holds the lock — waiting for it to serve 8188."
+    for _ in $(seq 1 60); do
+        if python3 -c "import socket,sys; s=socket.socket(); sys.exit(0 if s.connect_ex(('127.0.0.1',8188))==0 else 1)" 2>/dev/null; then
+            log "ComfyUI already serving on 8188 — this instance is redundant. Idling."
+            exec sleep infinity
+        fi
+        sleep 5
+    done
+    log "Lock holder never bound 8188 — exiting to avoid duplicate DB writes."
+    exit 1
+fi
+
 log "Starting ComfyUI on 0.0.0.0:8188 (lowvram=${LOWVRAM_FLAG:-off})"
 cd /opt/ComfyUI
 
-# Guard: if something already bound 8188 (e.g. supervisor started us and SimplePod
-# also ran this script), don't start a second server.
-if command -v python3 >/dev/null 2>&1 && python3 -c "import socket,sys; s=socket.socket(); sys.exit(0 if s.connect_ex(('127.0.0.1',8188))==0 else 1)" 2>/dev/null; then
-    log "Port 8188 already in use — skipping duplicate start (assuming supervisor owns it)."
+# Final safety: if something already bound 8188, don't start a second server.
+if python3 -c "import socket,sys; s=socket.socket(); sys.exit(0 if s.connect_ex(('127.0.0.1',8188))==0 else 1)" 2>/dev/null; then
+    log "Port 8188 already in use — skipping duplicate start."
     exec sleep infinity
 fi
 
