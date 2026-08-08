@@ -58,11 +58,12 @@ RUN git config --global http.postBuffer 524288000 \
     && git config --global http.lowSpeedTime 999999
 
 # Isolated venv so we don't break system Jupyter on the Clore base
-# cu121 wheels work on modern host drivers (Clore GPU hosts typically 535+)
+# cu128 wheels: latest torch (>=2.6, required by comfy-kitchen custom_op),
+# works on 3090 (CUDA 12.x drivers) and Blackwell 170HX (CUDA 13.x drivers).
 RUN python3 -m venv /opt/comfyui-venv \
     && /opt/comfyui-venv/bin/pip install -U --no-cache-dir pip wheel setuptools \
     && /opt/comfyui-venv/bin/pip install --no-cache-dir \
-        torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+        torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
 RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /opt/ComfyUI \
     && cd /opt/ComfyUI \
