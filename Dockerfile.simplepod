@@ -6,6 +6,9 @@
 #   - container entrypoint starts the app (ComfyUI on 8188)
 #   - SimplePod maps port 22 for SSH and provides keys itself
 #   - startScript may override CMD; we make /opt/start.sh self-manage SSH
+#
+# Critical: cloreai/jupyter base ships an ENTRYPOINT (Clore init) that would
+# take over on SimplePod. We clear it so /opt/start.sh becomes PID 1.
 # =============================================================================
 FROM moneywaters/comfyui-ltx:latest
 
@@ -13,5 +16,6 @@ ENV DISABLE_SSHD=0
 ENV BACKGROUND_MODELS=1
 ENV SKIP_MODEL_DOWNLOAD=0
 
-# SimplePod: no Clore supervisor — start.sh self-manages sshd + ComfyUI.
-CMD ["bash", "-c", "bash /opt/start.sh"]
+# Clear any inherited ENTRYPOINT/CMD from the Clore base.
+ENTRYPOINT []
+CMD ["/bin/bash", "-c", "bash /opt/start.sh"]

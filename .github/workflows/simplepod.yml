@@ -25,8 +25,8 @@ jobs:
       - name: Build and push SimplePod image
         run: |
           set -euo pipefail
-          # First build the base (H3 pivot) then the simplepod overlay
-          docker build -t moneywaters/comfyui-ltx:latest -f Containerfile .
+          # Pull the already-built base (latest) then build only the overlay.
+          # Overlay rebuilds quickly; base is rebuilt by build.yml on Containerfile changes.
+          docker pull moneywaters/comfyui-ltx:latest
           docker build -t moneywaters/comfyui-ltx:simplepod -f Dockerfile.simplepod .
-          docker push moneywaters/comfyui-ltx:latest
           docker push moneywaters/comfyui-ltx:simplepod
