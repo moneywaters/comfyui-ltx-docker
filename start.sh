@@ -154,6 +154,13 @@ EXTRA_ARGS="${COMFYUI_EXTRA_ARGS:-}"
 log "Starting ComfyUI on 0.0.0.0:8188 (lowvram=${LOWVRAM_FLAG:-off})"
 cd /opt/ComfyUI
 
+# Guard: if something already bound 8188 (e.g. supervisor started us and SimplePod
+# also ran this script), don't start a second server.
+if command -v python3 >/dev/null 2>&1 && python3 -c "import socket,sys; s=socket.socket(); sys.exit(0 if s.connect_ex(('127.0.0.1',8188))==0 else 1)" 2>/dev/null; then
+    log "Port 8188 already in use — skipping duplicate start (assuming supervisor owns it)."
+    exec sleep infinity
+fi
+
 # shellcheck disable=SC2086
 exec "$PYBIN" main.py \
     --listen 0.0.0.0 \
