@@ -10,9 +10,10 @@
 # Critical fixes vs base image:
 #   1. cloreai/jupyter base ships an ENTRYPOINT (Clore init) that would take
 #      over on SimplePod — cleared with ENTRYPOINT [].
-#   2. Base supervisor auto-starts ComfyUI; combined with the CMD this caused a
-#      port-8188 race (two ComfyUI processes). We remove the supervisor program
-#      and let /opt/start.sh be the only starter.
+#   2. Base supervisor (/etc/supervisor/init.sh) auto-starts ComfyUI; combined
+#      with the CMD this caused a port-8188 race (two ComfyUI processes).
+#      We replace init.sh with a no-op that execs /opt/start.sh, so there is
+#      exactly ONE ComfyUI process regardless of what entrypoint runs.
 #   3. DISABLE_SSHD=1 — SimplePod provides SSH; our self-managed sshd would
 #      fight it for port 22.
 # =============================================================================
@@ -22,9 +23,11 @@ ENV DISABLE_SSHD=1
 ENV BACKGROUND_MODELS=1
 ENV SKIP_MODEL_DOWNLOAD=0
 
-# Remove the base supervisor ComfyUI program so only /opt/start.sh runs it.
-RUN rm -f /etc/supervisor/conf.d/supervisord.conf \
-    && printf '[supervisord]\nnodaemon=true\n' > /etc/supervisor/conf.d/supervisord.conf
+# Replace the Clore init with a single-process entrypoint: exec /opt/start.sh.
+# This makes the container behavior identical whether Docker runs the CMD,
+# an ENTRYPOINT, or the old init.sh path.
+RUN printf '#!/bin/bash\nexec bash /opt/start.sh\n' > /etc/supervisor/init.sh \
+    && chmod +x /etc/supervisor/init.sh
 
 # Clear any inherited ENTRYPOINT/CMD from the Clore base.
 ENTRYPOINT []

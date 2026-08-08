@@ -145,9 +145,18 @@ if [ -n "${PYTORCH_CUDA_ALLOC_CONF:-}" ]; then
     export PYTORCH_CUDA_ALLOC_CONF
 fi
 
-LOWVRAM_FLAG="--lowvram"
-if [ "${COMFYUI_NO_LOWVRAM:-0}" = "1" ]; then
-    LOWVRAM_FLAG=""
+# Auto lowvram: only use --lowvram on smaller GPUs (<32GB). Big VRAM
+# (170HX 64GB, A100, etc.) should use full VRAM for best performance.
+LOWVRAM_FLAG=""
+if [ "${COMFYUI_NO_LOWVRAM:-0}" != "1" ]; then
+    if command -v nvidia-smi >/dev/null 2>&1; then
+        VRAM_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1 | tr -d ' ' || echo 0)
+        if [ -n "$VRAM_MB" ] && [ "$VRAM_MB" -gt 0 ] && [ "$VRAM_MB" -lt 32768 ]; then
+            LOWVRAM_FLAG="--lowvram"
+        fi
+    else
+        LOWVRAM_FLAG="--lowvram"
+    fi
 fi
 EXTRA_ARGS="${COMFYUI_EXTRA_ARGS:-}"
 
