@@ -108,8 +108,8 @@ COPY workflow/LTX-fixed.json /opt/ComfyUI/user/default/workflows/LTX-fixed.json
 COPY workflow/video_minimax_h3_t2v.json /opt/ComfyUI/user/default/workflows/video_minimax_h3_t2v.json
 COPY workflow/video_minimax_h3_i2v.json /opt/ComfyUI/user/default/workflows/video_minimax_h3_i2v.json
 COPY workflow/video_minimax_h3_r2v.json /opt/ComfyUI/user/default/workflows/video_minimax_h3_r2v.json
-COPY workflow/ep29/"Minimax H3 - Image to video FF (First Frame).json" /opt/ComfyUI/user/default/workflows/ep29_ff.json
-COPY workflow/ep29/"Minimax H3 - Text to video.json" /opt/ComfyUI/user/default/workflows/ep29_t2v.json
+COPY workflow/ep29/ep29_ff.json /opt/ComfyUI/user/default/workflows/ep29_ff.json
+COPY workflow/ep29/ep29_t2v.json /opt/ComfyUI/user/default/workflows/ep29_t2v.json
 COPY workflow/ep29/WomanPortraitRed.png /opt/ComfyUI/input/WomanPortraitRed.png
 
 RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/install-sage-attention.sh /opt/smoke-test.sh \
