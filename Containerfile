@@ -98,6 +98,7 @@ COPY fp8_embed_fix.py /opt/comfyui-fixes/fp8_embed_fix.py
 COPY start.sh /opt/start.sh
 COPY onstart.sh /root/onstart.sh
 COPY download-models.sh /opt/download-models.sh
+COPY install-sage-attention.sh /opt/install-sage-attention.sh
 COPY smoke-test.sh /opt/smoke-test.sh
 COPY clore/ensure-clore-ssh.sh /opt/ensure-clore-ssh.sh
 # ONLY replace conf.d programs (sshd + comfyui + delegated). Never touch official init.sh.
@@ -107,8 +108,11 @@ COPY workflow/LTX-fixed.json /opt/ComfyUI/user/default/workflows/LTX-fixed.json
 COPY workflow/video_minimax_h3_t2v.json /opt/ComfyUI/user/default/workflows/video_minimax_h3_t2v.json
 COPY workflow/video_minimax_h3_i2v.json /opt/ComfyUI/user/default/workflows/video_minimax_h3_i2v.json
 COPY workflow/video_minimax_h3_r2v.json /opt/ComfyUI/user/default/workflows/video_minimax_h3_r2v.json
+COPY workflow/ep29/"Minimax H3 - Image to video FF (First Frame).json" /opt/ComfyUI/user/default/workflows/ep29_ff.json
+COPY workflow/ep29/"Minimax H3 - Text to video.json" /opt/ComfyUI/user/default/workflows/ep29_t2v.json
+COPY workflow/ep29/WomanPortraitRed.png /opt/ComfyUI/input/WomanPortraitRed.png
 
-RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/smoke-test.sh \
+RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/install-sage-attention.sh /opt/smoke-test.sh \
         /opt/ensure-clore-ssh.sh /etc/delegated-entrypoint.sh \
         /etc/supervisor/init.sh \
     && bash /opt/ensure-clore-ssh.sh \

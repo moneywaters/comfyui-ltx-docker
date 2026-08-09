@@ -100,6 +100,22 @@ if [ "${INSTALL_EXTRA_DEPS:-0}" = "1" ]; then
     "$PYBIN" -m pip install -q sqlalchemy opencv-python-headless scikit-image matplotlib || true
 fi
 
+# --- Sage Attention (optional, on-demand build; needed for Blackwell sm120) ---
+# INSTALL_SAGE_ATTENTION=1 triggers a source build on first boot (GPU host has
+# CUDA toolkit). When installed, ComfyUI gets --use-sage-attention.
+SAGE_FLAG=""
+if [ "${INSTALL_SAGE_ATTENTION:-0}" = "1" ]; then
+    if [ -f /opt/sageattn/INSTALLED ] || "$PYBIN" -c "import sageattention" 2>/dev/null; then
+        SAGE_FLAG="--use-sage-attention"
+        log "SageAttention present — enabling --use-sage-attention"
+    else
+        log "Building SageAttention in background (first boot, ~5 min)..."
+        nohup bash /opt/install-sage-attention.sh >/var/log/sageattn.log 2>&1 &
+        echo $! > /tmp/sageattn.pid
+        disown $! 2>/dev/null || true
+    fi
+fi
+
 # --- VHS encoder format by GPU capability ---
 WF_JSON="/opt/ComfyUI/user/default/workflows/LTX-fixed.json"
 if [ -f "$WF_JSON" ] && command -v nvidia-smi >/dev/null 2>&1; then
@@ -194,6 +210,7 @@ exec "$PYBIN" main.py \
     --disable-auto-launch \
     --disable-smart-memory \
     $LOWVRAM_FLAG \
+    $SAGE_FLAG \
     $EXTRA_ARGS \
     --output-directory /workspace/output \
     --input-directory /workspace/input

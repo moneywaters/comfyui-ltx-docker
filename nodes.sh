@@ -26,7 +26,8 @@ for pair in \
   "https://github.com/malkuthro/ComfyUI-Koolook.git ComfyUI-Koolook" \
   "https://github.com/artokun/comfyui-mcp-panel.git comfyui-mcp-panel" \
   "https://github.com/dseditor/ComfyUI-ListHelper.git ComfyUI-ListHelper" \
-  "https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI.git WhatDreamsCost-ComfyUI"; do
+  "https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI.git WhatDreamsCost-ComfyUI" \
+  "https://github.com/pixaroma/ComfyUI-Pixaroma.git ComfyUI-Pixaroma"; do
   url=$(echo "$pair" | awk '{print $1}')
   dir=$(echo "$pair" | awk '{print $2}')
   echo "Cloning $dir ..."

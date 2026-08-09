@@ -15,7 +15,7 @@ if [ -z "${HF_TOKEN:-}" ]; then
 fi
 
 M=/opt/ComfyUI/models
-mkdir -p "$M"/{diffusion_models,text_encoders,vae}
+mkdir -p "$M"/{diffusion_models,text_encoders,vae} "$M"/diffusion_models/h3
 
 if ! command -v wget >/dev/null 2>&1; then
     echo "ERROR: wget not found — install wget in the image (Containerfile apt packages)"
@@ -47,12 +47,13 @@ download() {
     fi
 }
 
-# --- MiniMax H3 (24GB VRAM set: pruned INT8 diffusion + NVFP4 text encoder + both VAEs) ---
-# Diffusion: FL2VA (T2V + I2V). Ref2VA (R2V) can be added later; +20.9GB on disk.
-download diffusion_models "minimax_h3_fl2va_pruned_int8_convrot.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors"
-download text_encoders     "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
-download vae               "minimax_h3_video_vae_fp16.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors"
-download vae               "minimax_h3_audio_vae_fp32.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors"
+# --- MiniMax H3 (quality set: non-pruned INT8 diffusion + INT8 text encoder + both VAEs) ---
+# Non-pruned INT8 = full 33B quality without FP8/NF4 loss (user's chosen sweet spot).
+# Diffusion goes in h3/ subfolder (matches EP29 workflow paths).
+download diffusion_models/h3 "minimax_h3_fl2va_int8_convrot.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_int8_convrot.safetensors"
+download text_encoders "qwen3vl_32b_minimax_h3_int8_convrot.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors"
+download vae           "minimax_h3_video_vae_fp16.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors"
+download vae           "minimax_h3_audio_vae_fp32.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors"
 
 if [ "$FAILED" -gt 0 ]; then
     echo "=== Models finished with $FAILED failure(s) ==="
