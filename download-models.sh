@@ -47,11 +47,23 @@ download() {
     fi
 }
 
-# --- MiniMax H3 (quality set: non-pruned INT8 diffusion + INT8 text encoder + both VAEs) ---
-# Non-pruned INT8 = full 33B quality without FP8/NF4 loss (user's chosen sweet spot).
-# Diffusion goes in h3/ subfolder (matches EP29 workflow paths).
-download diffusion_models/h3 "minimax_h3_fl2va_int8_convrot.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_int8_convrot.safetensors"
-download text_encoders "qwen3vl_32b_minimax_h3_int8_convrot.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors"
+# --- MiniMax H3 model set selector ---
+# MODEL_SET=quality (default): non-pruned INT8 diffusion (34GB) + INT8 text encoder (27GB)
+#   = best quality, needs 64GB+ VRAM (170HX). Goes in h3/ subfolder.
+# MODEL_SET=pruned: pruned INT8 diffusion (21GB) + NVFP4 text encoder (16GB)
+#   = fits 24GB VRAM (4090/3090), ~42GB disk total.
+MODEL_SET="${MODEL_SET:-quality}"
+mkdir -p "$M"/diffusion_models/h3
+
+if [ "$MODEL_SET" = "pruned" ]; then
+    echo "=== MODEL_SET=pruned (24GB VRAM set) ==="
+    download diffusion_models "minimax_h3_fl2va_pruned_int8_convrot.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors"
+    download text_encoders "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+else
+    echo "=== MODEL_SET=quality (64GB VRAM set) ==="
+    download diffusion_models/h3 "minimax_h3_fl2va_int8_convrot.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_int8_convrot.safetensors"
+    download text_encoders "qwen3vl_32b_minimax_h3_int8_convrot.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors"
+fi
 download vae           "minimax_h3_video_vae_fp16.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors"
 download vae           "minimax_h3_audio_vae_fp32.safetensors" "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors"
 
