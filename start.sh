@@ -93,7 +93,7 @@ else
     echo "downloading" > /tmp/models-status
     nohup bash -c '
         set -o pipefail
-        if /opt/download-models.sh 2>&1 | tee -a /var/log/model-download.log; then
+        if /opt/download-models.sh 2>&1 | tee -a /var/log/model-download.log >&2; then
             echo ready > /tmp/models-status
             echo "[start] model download ready"
         else
