@@ -30,6 +30,14 @@ resolve_python() {
 PYBIN="$(resolve_python)"
 log "python=$PYBIN"
 
+# --- UI-selected extras (HF models, CivitAI LoRAs, custom nodes) ---
+# Runs in background so ComfyUI boots immediately; non-blocking, idempotent.
+if [ -x /opt/runtime-extras.sh ]; then
+    nohup bash /opt/runtime-extras.sh >/var/log/runtime-extras.log 2>&1 &
+    disown $! 2>/dev/null || true
+    log "runtime-extras started in background"
+fi
+
 # --- Optional self-managed SSH (Vast / non-Clore). On Clore, supervisor already runs sshd. ---
 mkdir -p /var/run/sshd /run/sshd /root/.ssh
 chmod 700 /root/.ssh

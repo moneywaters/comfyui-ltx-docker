@@ -99,6 +99,7 @@ COPY start.sh /opt/start.sh
 COPY onstart.sh /root/onstart.sh
 COPY download-models.sh /opt/download-models.sh
 COPY install-sage-attention.sh /opt/install-sage-attention.sh
+COPY runtime-extras.sh /opt/runtime-extras.sh
 COPY smoke-test.sh /opt/smoke-test.sh
 COPY clore/ensure-clore-ssh.sh /opt/ensure-clore-ssh.sh
 # ONLY replace conf.d programs (sshd + comfyui + delegated). Never touch official init.sh.
@@ -112,7 +113,7 @@ COPY workflow/ep29/ep29_ff.json /opt/ComfyUI/user/default/workflows/ep29_ff.json
 COPY workflow/ep29/ep29_t2v.json /opt/ComfyUI/user/default/workflows/ep29_t2v.json
 COPY workflow/ep29/WomanPortraitRed.png /opt/ComfyUI/input/WomanPortraitRed.png
 
-RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/install-sage-attention.sh /opt/smoke-test.sh \
+RUN chmod +x /opt/start.sh /root/onstart.sh /opt/download-models.sh /opt/install-sage-attention.sh /opt/runtime-extras.sh /opt/smoke-test.sh \
         /opt/ensure-clore-ssh.sh /etc/delegated-entrypoint.sh \
         /etc/supervisor/init.sh \
     && bash /opt/ensure-clore-ssh.sh \
