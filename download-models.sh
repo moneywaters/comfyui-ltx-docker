@@ -36,7 +36,7 @@ download() {
         rm -f "$M/$subdir/$name"
     fi
     echo "Downloading: $subdir/$name"
-    if wget --header "Authorization: Bearer ${HF_TOKEN}" -q --show-progress --progress=dot:giga \
+    if wget --header "Authorization: Bearer ${HF_TOKEN}" --show-progress --progress=dot:giga \
             -O "$M/$subdir/$name.partial" "$url"; then
         mv -f "$M/$subdir/$name.partial" "$M/$subdir/$name"
         echo "OK: $subdir/$name"

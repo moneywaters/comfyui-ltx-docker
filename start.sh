@@ -92,14 +92,15 @@ else
     log "Downloading models in background..."
     echo "downloading" > /tmp/models-status
     nohup bash -c '
-        if /opt/download-models.sh; then
+        set -o pipefail
+        if /opt/download-models.sh 2>&1 | tee -a /var/log/model-download.log; then
             echo ready > /tmp/models-status
             echo "[start] model download ready"
         else
             echo failed > /tmp/models-status
             echo "[start] model download failed"
         fi
-    ' >/var/log/model-download.log 2>&1 &
+    ' &
     echo $! > /tmp/models-download.pid
     disown $! 2>/dev/null || true
 fi
