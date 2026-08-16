@@ -91,14 +91,17 @@ elif [ "$BACKGROUND_MODELS" = "0" ]; then
 else
     log "Downloading models in background..."
     echo "downloading" > /tmp/models-status
+    # Write download progress to PID1 stdout (the SimplePod console) explicitly,
+    # because nohup redirects both a tty stdout and stderr to nohup.out.
+    CONSOLE_FD="/proc/1/fd/1"
     nohup bash -c '
         set -o pipefail
-        if /opt/download-models.sh 2>&1 | tee -a /var/log/model-download.log >&2; then
+        if /opt/download-models.sh 2>&1 | tee -a /var/log/model-download.log >> /proc/1/fd/1; then
             echo ready > /tmp/models-status
-            echo "[start] model download ready"
+            echo "[start] model download ready" >> /proc/1/fd/1
         else
             echo failed > /tmp/models-status
-            echo "[start] model download failed"
+            echo "[start] model download failed" >> /proc/1/fd/1
         fi
     ' &
     echo $! > /tmp/models-download.pid
